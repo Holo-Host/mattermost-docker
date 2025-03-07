@@ -1,3 +1,5 @@
 file_ids:
 - .env
+- holo/config-test.json
+- holo/config.json
 version: "1"
