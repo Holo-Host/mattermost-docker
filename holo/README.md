@@ -31,7 +31,7 @@ If you don't already have an existing host or need to create a new one for scali
 PGHOST=${PROD}
 PGUSER=${PGUSER:-mmuser}
 PGDATABASE=${PGDATABASE:-mattermost}
-S3_BUCKET=${S3_BUCKET:-mmdump--usw2-az4--x-s3}
+S3_BUCKET=${S3_BUCKET:-db.dr1.chat.holo.host}
 
 DATE=$(date "+%Y-%m-%d-%H%M")
 TARGET=s3://${S3_BUCKET}/${PGDATABASE}-${DATE}.sql.gz
