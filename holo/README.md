@@ -7,7 +7,14 @@ This has meant the following changes/additions:
 - Documentation of Hetzner Cloud host creation using `hcloud`.
 - Restart policy is set to `always` and specified Postgres image is `14-alpine` for compatibility with existing MM database.
 - Target [server release](https://docs.mattermost.com/about/mattermost-server-releases.html) is Mattermost Team Edition Extended Support Release(ESR) 9.5.13.  The intention is to migrate to the 10.5 ESR series in the next quarterly upgrade cycle.
-
+- No auto-update for images (`watchtower` completely removed from `docker-compose.yml`
+**Not yet implemented:**
+- Run only rootless containers (check [dockerfile] for `USER` statement)
+- No `--privileged`, no `--network host` and no `--id 0`
+- No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
+- Use proxies with simple ingress rules to prevent abuse and spam (rate limit, geo block)
+- Use `--internal`
+- Use AppArmor profiles
 ## Install & Usage
 ### Hetzner Cloud Host Creation
 If you don't already have an existing host or need to create a new one for scaling or disaster recovery, take the following steps.  Otherwise you can skip to the next section.
