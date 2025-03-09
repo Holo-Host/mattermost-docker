@@ -23,8 +23,8 @@ If you don't already have an existing host or need to create a new one for scali
 2. Use the [`hcloud` cli](https://github.com/hetznercloud/cli) to set up a [Hetzner Cloud](https://www.hetzner.com/cloud/) server with pre-installed Docker & Compose on Ubuntu: e.g. `hcloud server create --name mm-docker --location hel1 --type ccx23 --image docker-ce`
 3. The result will include an IP address and a root password, so that you can `ssh` into the server.  You should do so immediately and setup SSH Key Authentication and prohibit the use of a password for Root SSH login.
 
-### Mattermost Backup and Restore 
-1. Obtain a pg_dump compatible backup of your Mattermost database.  The following script will work with an existing AWS RDS hosted Mattermost database:
+### Mattermost Backup and Restore: AWS Migration Edition
+1. Obtain a `pg_dump` compatible backup of your Mattermost database.  The following script (adapted from [rds-s3-database-backup](https://github.com/bamf-health/rds-s3-database-backup)) will work with an existing AWS RDS hosted Mattermost database:
 ```
 #!/bin/sh
 # Set default connection parameters for pg_dump
@@ -41,10 +41,9 @@ echo Backing up ${PGHOST}/${PGDATABASE} to ${TARGET}
 # export PGPASSWORD=${DATABASE_PASSWORD}
 pg_dump --clean -Z 9 -v -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} | aws s3 cp --storage-class STANDARD_IA --sse aws:kms - ${TARGET}
 ```
-It was adapted from [rds-s3-database-backup](https://github.com/bamf-health/rds-s3-database-backup).
-2. The resulting dump is stored in AWS S3.  It can be restored thusly on the destination Mattermost, `aws s3 cp s3://... - | gunzip | psql`
-3. Take a copy of `config/config.json`
-4. Backup stored files, if not using S3 for that.
+2. The resulting dump is stored in AWS S3.  It can be restored thusly on the destination server, `aws s3 cp s3://db.dr1.chat.holo.host - | gunzip | psql`
+3. Take a copy of `config/config.json`.  In our case, we also had to extract all the customizations in that file and replicate them in `docker-compose.yml` and `.env`.
+4. No need to backup stored files, since we are using S3 for that.
 
 ### Mattermost deployment to Hetzner Cloud Host
 Refer to the [Mattermost Docker deployment guide](https://docs.mattermost.com/install/install-docker.html) for detailed instructions on how to deploy Mattermost to the newly created server. The following are the abbreviated steps:
