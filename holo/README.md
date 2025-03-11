@@ -10,17 +10,18 @@ This has meant the following changes/additions:
 - No auto-update for images. Have completely removed `watchtower` from `docker-compose.yml`.
 - Run only rootless containers (check [dockerfile] for `USER` statement)
 - Use proxies with simple ingress rules to prevent abuse and spam (rate limit, geo block).  Using nginx as the reverse proxy for Mattermost.
-- Implemented Docker-specific audit rules for `auditd`.
+- Implemented Docker-specific audit rules for `auditd` in `/etc/audit/rules.d/audit.rules`.  Added sample `audit.rules`.
 - No `--privileged`
 - No `--network host` and no `--id 0`
-- Dropping NET_RAW and SYS_CHROOT capabilities from services in Compose files.
+- Dropping NET_RAW and SYS_CHROOT capabilities from services in Compose files.  
+- Use [AppArmor profiles](https://docs.docker.com/engine/security/apparmor/). Sample `app-armor.docker-harden` denies `network raw` and `capability sys_chroot`.
 - [Set runsc as the default runtime on the host](https://github.com/glotcode/docker-run/blob/main/docs/install/ubuntu-20.10-gvisor.md#set-runsc-as-the-default-runtime) and explicitly as the container runtime for mattermost, nginx and postgres in Compose files.
 - Added sample `daemon.json` with runsc and no-new-privileges=true as defaults.
-**Not yet implemented:**
-- No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
-- Use `--internal`
-- Use AppArmor profiles
+- N/A: Use `--internal`
+- N/A: No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
 - Document actions taken as a result of mitigating issues surfaced by docker-bench-security and am-i-isolated.
+**Not yet implemented:**
+- Investigate Content Trust for Docker
 
 ## Security Audits
 ### Manual

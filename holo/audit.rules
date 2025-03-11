@@ -1,0 +1,31 @@
+## First rule - delete all
+-D
+
+## Increase the buffers to survive stress events.
+## Make this bigger for busy systems
+-b 8192
+
+## This determine how long to wait in burst of events
+--backlog_wait_time 60000
+
+## Set failure mode to syslog
+-f 1
+
+## Docker-specific rules:
+-w /etc/containerd/config.toml -p wa
+-w /etc/default/docker -p wa
+-w /etc/docker -p wa
+-w /etc/docker/daemon.json -p wa
+-w /lib/systemd/system/docker.service -p wa
+-w /lib/systemd/system/docker.socket -p wa
+-w /run/containerd -p wa
+-w /run/containerd/containerd.sock -p wa
+-w /usr/bin/containerd -p wa
+-w /usr/bin/docker -p wa
+-w /usr/bin/dockerd -p wa
+-w /var/lib/docker -p wa
+-w /usr/bin/containerd -p wa
+-w /usr/bin/containerd-shim -p wa
+-w /usr/bin/containerd-shim-runc-v1 -p wa
+-w /usr/bin/containerd-shim-runc-v2 -p wa
+-w /usr/bin/runc -p wa
