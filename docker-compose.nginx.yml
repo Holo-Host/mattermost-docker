@@ -5,6 +5,9 @@ services:
     container_name: nginx_mattermost
     image: nginx:${NGINX_IMAGE_TAG}
     restart: ${RESTART_POLICY}
+    cap_drop:
+      - NET_RAW
+      - SYS_CHROOT
     security_opt:
       - no-new-privileges:true
     pids_limit: 100
