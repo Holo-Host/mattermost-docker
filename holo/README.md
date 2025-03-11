@@ -15,6 +15,7 @@ This has meant the following changes/additions:
 - No `--network host` and no `--id 0`
 - Dropping NET_RAW and SYS_CHROOT capabilities from services in Compose files.
 - [Set runsc as the default runtime on the host](https://github.com/glotcode/docker-run/blob/main/docs/install/ubuntu-20.10-gvisor.md#set-runsc-as-the-default-runtime) and explicitly as the container runtime for mattermost, nginx and postgres in Compose files.
+- Added sample `daemon.json` with runsc and no-new-privileges=true as defaults.
 **Not yet implemented:**
 - No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
 - Use `--internal`
