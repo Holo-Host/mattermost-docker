@@ -25,6 +25,7 @@ This has meant the following changes/additions:
 - Added `docker-compose.crowdsec-gvisor-nginx.yml`.
 - Adding [Diun](https://crazymax.dev/diun/).
 - Implemented hardening-specific audit rules for `auditd`.  Added sample `hardening.rules`.
+- Hardening system via `sysctl`.  See `holo/99-hardening.conf`.
 **Not yet implemented:**
 - Investigate Content Trust for Docker
 
