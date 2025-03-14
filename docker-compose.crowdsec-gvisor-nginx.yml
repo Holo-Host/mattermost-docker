@@ -55,6 +55,10 @@ services:
     image: nginx:${NGINX_IMAGE_TAG}
     restart: ${RESTART_POLICY}
     runtime: runsc
+    labels:
+      - crowdsec.enable=true
+      - crowdsec.labels.type=nginx
+    ## https://docs.crowdsec.net/docs/next/data_sources/docker#use_container_labels
     cap_drop:
       - NET_RAW
       - SYS_CHROOT
@@ -96,3 +100,4 @@ networks:
 # This network name is being used for Let's Encrypt certificate renewal
   default:
     name: mattermost
+    driver: bridge
