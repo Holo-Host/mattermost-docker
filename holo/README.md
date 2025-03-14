@@ -6,7 +6,7 @@ This has meant the following changes/additions:
 - [Gitleaks](https://github.com/gitleaks/gitleaks) has been implemented as a pre-commit hook to prevent the accidental commitment of hardcoded secrets to the repo.
 - Documentation of Hetzner Cloud host creation using `hcloud`.
 - Restart policy is set to `always` and specified Postgres image is `14-alpine` for compatibility with existing MM database.
-- Target [server release](https://docs.mattermost.com/about/mattermost-server-releases.html) is Mattermost Team Edition Extended Support Release(ESR) 9.5.13.  The intention is to migrate to the 10.5 ESR series in the next quarterly upgrade cycle.
+- Target [server release](https://docs.mattermost.com/about/mattermost-server-releases.html) is [Mattermost Team Edition](https://hub.docker.com/r/mattermost/mattermost-team-edition) Extended Support Release(ESR) 9.5.13.  The intention is to migrate to the 10.5 ESR series in the next quarterly upgrade cycle.
 - No auto-update for images. Have completely removed `watchtower` from `docker-compose.yml`.
 - Run only rootless containers (check [dockerfile] for `USER` statement)
 - Use proxies with simple ingress rules to prevent abuse and spam (rate limit, geo block).  Using nginx as the reverse proxy for Mattermost.
@@ -14,12 +14,14 @@ This has meant the following changes/additions:
 - No `--privileged`
 - No `--network host` and no `--id 0`
 - Dropping NET_RAW and SYS_CHROOT capabilities from services in Compose files.  
-- Use [AppArmor profiles](https://docs.docker.com/engine/security/apparmor/). Sample `app-armor.docker-harden` denies `network raw` and `capability sys_chroot`.
-- [Set runsc as the default runtime on the host](https://github.com/glotcode/docker-run/blob/main/docs/install/ubuntu-20.10-gvisor.md#set-runsc-as-the-default-runtime) and explicitly as the container runtime for mattermost, nginx and postgres in Compose files.
+- FAILING: Use [AppArmor profiles](https://docs.docker.com/engine/security/apparmor/). Sample `app-armor.docker-harden` denies `network raw` and `capability sys_chroot`.
+- Sample seccomp-harden.json file that removes `CAP_SYS_CHROOT`.
+- [Set `runsc` as the default runtime on the host](https://github.com/glotcode/docker-run/blob/main/docs/install/ubuntu-20.10-gvisor.md#set-runsc-as-the-default-runtime) and explicitly as the container runtime for mattermost, nginx and postgres in Compose files.  `runsc` installed as per [gVisor Docker Quick Start](https://gvisor.dev/docs/user_guide/quick_start/docker/).
 - Added sample `daemon.json` with runsc and no-new-privileges=true as defaults.
 - N/A: Use `--internal`
 - N/A: No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
 - Document actions taken as a result of mitigating issues surfaced by docker-bench-security and am-i-isolated.
+- Implemented Crowdsec on host, need to figure out best way to integrate with Docker Compose setup. See [Example Docker Compose for Crowdsec repo](https://github.com/crowdsecurity/example-docker-compose) using [crowdsecurity/crowdsec](https://hub.docker.com/r/crowdsecurity/crowdsec) images and docker-socket-proxy for nginx.
 **Not yet implemented:**
 - Investigate Content Trust for Docker
 
