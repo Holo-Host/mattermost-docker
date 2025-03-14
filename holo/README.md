@@ -24,6 +24,7 @@ This has meant the following changes/additions:
 - Implemented Crowdsec on host. See [Example Docker Compose for Crowdsec repo](https://github.com/crowdsecurity/example-docker-compose) using [crowdsecurity/crowdsec](https://hub.docker.com/r/crowdsecurity/crowdsec) images and docker-socket-proxy for nginx usage.
 - Added `docker-compose.crowdsec-gvisor-nginx.yml`.
 - Adding [Diun](https://crazymax.dev/diun/).
+- Implemented hardening-specific audit rules for `auditd`.  Added sample `hardening.rules`.
 **Not yet implemented:**
 - Investigate Content Trust for Docker
 
