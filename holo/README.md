@@ -10,13 +10,12 @@ This has meant the following changes/additions:
 - No auto-update for images. Have completely removed `watchtower` from `docker-compose.yml`.
 - Run only rootless containers (check [dockerfile] for `USER` statement)
 - Use proxies with simple ingress rules to prevent abuse and spam (rate limit, geo block).  Using nginx as the reverse proxy for Mattermost.
-- Implemented Docker-specific audit rules for `auditd` in `/etc/audit/rules.d/audit.rules`.  Added sample `audit.rules`.
 - No `--privileged`
 - No `--network host` and no `--id 0`
 - Dropping NET_RAW and SYS_CHROOT capabilities from services in Compose files.  
 - FAILING: Use [AppArmor profiles](https://docs.docker.com/engine/security/apparmor/). Sample `app-armor.docker-harden` denies `network raw` and `capability sys_chroot`.
 - Sample seccomp-harden.json file that removes `CAP_SYS_CHROOT`.
-- Added sample `daemon.json` with runsc and no-new-privileges=true as defaults.
+- Added sample `daemon.json` with hardened Docker daemon configuration.
 - N/A: Use `--internal`
 - N/A: No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
 - Document actions taken as a result of mitigating issues surfaced by docker-bench-security and am-i-isolated.
