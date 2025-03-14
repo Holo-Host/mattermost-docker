@@ -29,6 +29,7 @@ services:
       - postgres
     image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG}
     restart: ${RESTART_POLICY}
+    runtime: runsc
     cap_drop:
       - NET_RAW
       - SYS_CHROOT

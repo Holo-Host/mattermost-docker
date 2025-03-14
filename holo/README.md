@@ -16,13 +16,14 @@ This has meant the following changes/additions:
 - Dropping NET_RAW and SYS_CHROOT capabilities from services in Compose files.  
 - FAILING: Use [AppArmor profiles](https://docs.docker.com/engine/security/apparmor/). Sample `app-armor.docker-harden` denies `network raw` and `capability sys_chroot`.
 - Sample seccomp-harden.json file that removes `CAP_SYS_CHROOT`.
-- [Set `runsc` as the default runtime on the host](https://github.com/glotcode/docker-run/blob/main/docs/install/ubuntu-20.10-gvisor.md#set-runsc-as-the-default-runtime) and explicitly as the container runtime for mattermost, nginx and postgres in Compose files.  `runsc` installed as per [gVisor Docker Quick Start](https://gvisor.dev/docs/user_guide/quick_start/docker/).
 - Added sample `daemon.json` with runsc and no-new-privileges=true as defaults.
 - N/A: Use `--internal`
 - N/A: No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
 - Document actions taken as a result of mitigating issues surfaced by docker-bench-security and am-i-isolated.
 - Implemented Crowdsec on host, need to figure out best way to integrate with Docker Compose setup. See [Example Docker Compose for Crowdsec repo](https://github.com/crowdsecurity/example-docker-compose) using [crowdsecurity/crowdsec](https://hub.docker.com/r/crowdsecurity/crowdsec) images and docker-socket-proxy for nginx.
 **Not yet implemented:**
+- Added `holo/docker-compose-crowdsec.yml` integrating with Mattermost and nginx.
+- No longer using [`runsc` as the default runtime on the host](https://github.com/glotcode/docker-run/blob/main/docs/install/ubuntu-20.10-gvisor.md#set-runsc-as-the-default-runtime).  Only using `runsc` as the container runtime for mattermost and nginx in Compose files.  `runsc` installed as per [gVisor Docker Quick Start](https://gvisor.dev/docs/user_guide/quick_start/docker/).
 - Investigate Content Trust for Docker
 
 ## Security Audits

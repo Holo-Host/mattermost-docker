@@ -1,9 +1,10 @@
 {
     "no-new-privileges": true,
-    "default-runtime": "runsc",
     "runtimes": {
         "runsc": {
-            "path": "/usr/bin/runsc"
+            "path": "/usr/bin/runsc",
+	    "runtimeArgs": [
+                "--overlay2=root:self"
         }
     }
 }
