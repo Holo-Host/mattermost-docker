@@ -25,17 +25,17 @@ This has meant the following changes/additions:
 - Adding [Diun](https://crazymax.dev/diun/).
 - Implemented hardening-specific audit rules for `auditd`.  Added sample `hardening.rules`.
 - Hardening system via `sysctl`.  See `holo/99-hardening.conf`.
-**Not yet implemented:**
-- Investigate Content Trust for Docker
+- Investigated Content Trust for Docker
+- Taken initial steps towards future integration of [Solidblocks RDS PostgreSQL](https://pellepelster.github.io/solidblocks/rds/index.html).  A containerized PostgreSQL database with an all batteries included backup solution powered by [pgBackRest](https://pgbackrest.org/).
 
 ## Security Audits
 ### Manual
 - Ensured Mattermost and Postgres containers do NOT run as root, by reviewing their respective `Dockerfile` definitions.
 - The [default Nginx Docker image](https://hub.docker.com/_/nginx) does RUN as root, but drops privileges for the worker processes.  There is an [official unprivileged Nginx image](https://hub.docker.com/r/nginxinc/nginx-unprivileged) available but that could introduce maintenance overhead.  For now, I will consider the dropping of privileges sufficient.
 ### Automated
-- Am I Isolated
-- Docker Bench for Security
-- Lynis
+- [Lynis](https://github.com/CISOfy/lynis) hardening index: 82
+- [Docker Bench for Security](https://github.com/docker/docker-bench-security) score: 36
+- [Am I Isolated](https://github.com/edera-dev/am-i-isolated)
 ## Install & Usage
 ### Hetzner Cloud Host Creation
 If you don't already have an existing host or need to create a new one for scaling or disaster recovery, take the following steps.  Otherwise you can skip to the next section.

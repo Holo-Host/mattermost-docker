@@ -2,6 +2,7 @@
 services:
   postgres:
     image: postgres:${POSTGRES_IMAGE_TAG}
+    pull_policy: if_not_present
     restart: ${RESTART_POLICY}
     cap_drop:
       - NET_RAW
@@ -23,10 +24,17 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_DB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
   mattermost:
     depends_on:
       - postgres
+          condition: service_healthy
+          restart: true
     image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG}
     restart: ${RESTART_POLICY}
     runtime: runsc
@@ -51,33 +59,5 @@ services:
       # (link: https://github.com/mattermost/mattermost-server/issues/13059 and https://github.com/mattermost/docker/issues/34)
       # - ${GITLAB_PKI_CHAIN_PATH}:/etc/ssl/certs/pki_chain.pem:ro
     environment:
-      # timezone inside container
-      - TZ
-
-      # necessary Mattermost options/variables (see env.example)
-      - MM_SQLSETTINGS_DRIVERNAME
-      - MM_SQLSETTINGS_DATASOURCE
-
-      # necessary for bleve
-      - MM_BLEVESETTINGS_INDEXDIR
-
-      # additional settings
-      - MM_SERVICESETTINGS_SITEURL
-      - MM_SERVICESETTINGS_THREADEDDISCUSSIONS
-      - MM_TEAMSETTINGS_SITENAME
-      - MM_TEAMSETTINGS_ENABLECUSTOMBRAND
-      - MM_FILESETTINGS_DRIVERNAME
-      - MM_FILESETTINGS_MAXFILESIZE
-      - MM_FILESETTINGS_AMAZONS3BUCKET
-      - MM_FILESETTINGS_AMAZONS3REGION
-      - MM_FILESETTINGS_AMAZONS3ACCESSKEYID
-      - MM_FILESETTINGS_AMAZONS3SECRETACCESSKEY
-      - MM_FILESETTINGS_AMAZONS3SSE
-      - MM_EMAILSETTINGS_SMTPSERVER
-      - MM_EMAILSETTINGS_SMTPPORT
-      - MM_EMAILSETTINGS_ENABLESMTPAUTH
-      - MM_EMAILSETTINGS_SMTPUSERNAME
-      - MM_EMAILSETTINGS_SMTPPASSWORD
-      - MM_EMAILSETTINGS_CONNECTIONSECURITY
-      - MM_EMAILSETTINGS_SENDPUSHNOTIFICATIONS
-      - MM_EMAILSETTINGS_PUSHNOTIFICATIONSERVER
+      env_file:
+      - .env
