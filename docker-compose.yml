@@ -58,6 +58,11 @@ services:
       # to avoid Token request failed: certificate signed by unknown authority 
       # (link: https://github.com/mattermost/mattermost-server/issues/13059 and https://github.com/mattermost/docker/issues/34)
       # - ${GITLAB_PKI_CHAIN_PATH}:/etc/ssl/certs/pki_chain.pem:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${HTTP_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       env_file:
       - .env
