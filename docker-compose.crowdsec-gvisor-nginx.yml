@@ -77,13 +77,13 @@ services:
       - ${KEY_PATH}:/key.pem:ro
       - shared-webroot:/usr/share/nginx/html
     environment:
-      # timezone inside container
       - TZ
+      - MM_URL
     ports:
       - ${HTTPS_PORT}:443
       - ${HTTP_PORT}:80
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${HTTP_PORT}"]
+      test: ["CMD", "wget", "-nv", "-t 1", "--spider", "{$MM_URL}:${HTTP_PORT}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -101,7 +101,7 @@ services:
     networks:
       crowdsec:
     environment:
-      DOCKER_HOST: tcp://socket-proxy:2375
+      - DOCKER_HOST: tcp://socket-proxy:2375
       # timezone inside container
       - TZ
       - "DIUN_WATCH_WORKERS=20"
@@ -129,14 +129,14 @@ services:
 volumes:
   crowdsec-db:
   crowdsec-config:
-# Shared volume for Let's Encrypt certificate renewal with a webroot
+  # Shared volume for Let's Encrypt certificate renewal with a webroot
   shared-webroot:
     name: shared-webroot
 
 networks:
   crowdsec:
     driver: bridge
-# This network name is being used for Let's Encrypt certificate renewal
+  # This network name is being used for Let's Encrypt certificate renewal
   default:
     name: mattermost
     driver: bridge
