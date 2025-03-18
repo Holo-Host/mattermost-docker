@@ -1,0 +1,118 @@
+# https://docs.docker.com/compose/environment-variables/
+
+services:
+  change-vol-ownership:
+    image: ubuntu
+    user: "root"
+    volumes:
+      - data:/storage/data
+      - backup:/storage/backup
+    command: chown -R 10000:10000 /storage
+
+  postgresql:
+    image: ghcr.io/pellepelster/solidblocks-rds-postgresql:15-snapshot-rc
+    environment:
+      DB_INSTANCE_NAME: instance1
+      DB_BACKUP_LOCAL: 1
+      DB_POSTGRES_EXTRA_CONFIG: "max_connections = 200\nshared_buffers = 2GB\neffective_cache_size = 6GB\nmaintenance_work_mem = 512MB\ncheckpoint_completion_target = 0.9\nwal_buffers = 16MB\n"
+    volumes:
+      - data:/storage/data
+      - backup:/storage/backup
+    ports:
+      - "5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "rds_provisioning_completed.sh" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      change-vol-ownership:
+        condition: service_completed_successfully
+
+volumes:
+  data:
+  backup:
+
+services:
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG}
+    image: ghcr.io/pellepelster/solidblocks-rds-postgresql:${SOLIDBLOCKS-RDS-POSTGRESQL_IMAGE_TAG}
+    restart: ${RESTART_POLICY}
+    cap_drop:
+      - NET_RAW
+      - SYS_CHROOT
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    volumes:
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+    environment:
+      # timezone inside container
+      - TZ
+
+      # necessary Postgres options/variables
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+
+  mattermost:
+    depends_on:
+      - postgres
+    image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG}
+    restart: ${RESTART_POLICY}
+    runtime: runsc
+    cap_drop:
+      - NET_RAW
+      - SYS_CHROOT
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    read_only: ${MATTERMOST_CONTAINER_READONLY}
+    tmpfs:
+      - /tmp
+    volumes:
+      - ${MATTERMOST_CONFIG_PATH}:/mattermost/config:rw
+      - ${MATTERMOST_DATA_PATH}:/mattermost/data:rw
+      - ${MATTERMOST_LOGS_PATH}:/mattermost/logs:rw
+      - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
+      - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
+      - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
+      # When you want to use SSO with GitLab, you have to add the cert pki chain of GitLab inside Alpine
+      # to avoid Token request failed: certificate signed by unknown authority 
+      # (link: https://github.com/mattermost/mattermost-server/issues/13059 and https://github.com/mattermost/docker/issues/34)
+      # - ${GITLAB_PKI_CHAIN_PATH}:/etc/ssl/certs/pki_chain.pem:ro
+    environment:
+      # timezone inside container
+      - TZ
+
+      # necessary Mattermost options/variables (see env.example)
+      - MM_SQLSETTINGS_DRIVERNAME
+      - MM_SQLSETTINGS_DATASOURCE
+
+      # necessary for bleve
+      - MM_BLEVESETTINGS_INDEXDIR
+
+      # additional settings
+      - MM_SERVICESETTINGS_SITEURL
+      - MM_SERVICESETTINGS_THREADEDDISCUSSIONS
+      - MM_TEAMSETTINGS_SITENAME
+      - MM_TEAMSETTINGS_ENABLECUSTOMBRAND
+      - MM_FILESETTINGS_DRIVERNAME
+      - MM_FILESETTINGS_MAXFILESIZE
+      - MM_FILESETTINGS_AMAZONS3BUCKET
+      - MM_FILESETTINGS_AMAZONS3REGION
+      - MM_FILESETTINGS_AMAZONS3ACCESSKEYID
+      - MM_FILESETTINGS_AMAZONS3SECRETACCESSKEY
+      - MM_FILESETTINGS_AMAZONS3SSE
+      - MM_EMAILSETTINGS_SMTPSERVER
+      - MM_EMAILSETTINGS_SMTPPORT
+      - MM_EMAILSETTINGS_ENABLESMTPAUTH
+      - MM_EMAILSETTINGS_SMTPUSERNAME
+      - MM_EMAILSETTINGS_SMTPPASSWORD
+      - MM_EMAILSETTINGS_CONNECTIONSECURITY
+      - MM_EMAILSETTINGS_SENDPUSHNOTIFICATIONS
+      - MM_EMAILSETTINGS_PUSHNOTIFICATIONSERVER
