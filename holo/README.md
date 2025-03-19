@@ -36,6 +36,7 @@ This has meant the following changes/additions:
 - [Lynis](https://github.com/CISOfy/lynis) hardening index: 82
 - [Docker Bench for Security](https://github.com/docker/docker-bench-security) score: 36
 - [Am I Isolated](https://github.com/edera-dev/am-i-isolated)
+- [Docker Compose Linter (DCLint)](https://github.com/zavoloklom/docker-compose-linter): All actual validation errors reported in `docker-compose.yml` and `docker-compose.crowdsec-gvisor-nginx.yml` have been fixed. 
 ## Install & Usage
 ### Hetzner Cloud Host Creation
 If you don't already have an existing host or need to create a new one for scaling or disaster recovery, take the following steps.  Otherwise you can skip to the next section.
