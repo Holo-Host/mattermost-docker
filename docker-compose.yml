@@ -58,3 +58,128 @@ services:
       - /tmp
       - /var/run/postgresql
 
+# https://docs.docker.com/compose/environment-variables/
+name: holo-mattermost-docker
+
+services:
+  mattermost:
+    image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG}
+    env_file: ./.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${MATTERMOST_CONFIG_PATH}:/mattermost/config:rw
+      - ${MATTERMOST_DATA_PATH}:/mattermost/data:rw
+      - ${MATTERMOST_LOGS_PATH}:/mattermost/logs:rw
+      - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
+      - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
+      - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
+    restart: ${RESTART_POLICY}
+    cap_drop:
+      - NET_RAW
+      - SYS_CHROOT
+    pids_limit: 200
+    read_only: ${MATTERMOST_CONTAINER_READONLY}
+    runtime: runsc
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG}
+    volumes:
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+    environment:
+      # timezone inside container
+      - TZ
+
+      # necessary Postgres options/variables
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    restart: ${RESTART_POLICY}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    cap_drop:
+      - NET_RAW
+      - SYS_CHROOT
+    pids_limit: 100
+    pull_policy: if_not_present
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+# https://docs.docker.com/compose/environment-variables/
+name: holo-mattermost-docker
+
+services:
+  mattermost:
+    image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG}
+    env_file: ./.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${MATTERMOST_CONFIG_PATH}:/mattermost/config:rw
+      - ${MATTERMOST_DATA_PATH}:/mattermost/data:rw
+      - ${MATTERMOST_LOGS_PATH}:/mattermost/logs:rw
+      - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
+      - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
+      - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
+    restart: ${RESTART_POLICY}
+    cap_drop:
+      - NET_RAW
+      - SYS_CHROOT
+    pids_limit: 200
+    read_only: ${MATTERMOST_CONTAINER_READONLY}
+    runtime: runsc
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG}
+    volumes:
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+    environment:
+      # timezone inside container
+      - TZ
+
+      # necessary Postgres options/variables
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    restart: ${RESTART_POLICY}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    cap_drop:
+      - NET_RAW
+      - SYS_CHROOT
+    pids_limit: 100
+    pull_policy: if_not_present
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+networks:
+  # This network name is being used for Let's Encrypt certificate renewal
+  default:
+    name: mattermost
+    driver: bridge
