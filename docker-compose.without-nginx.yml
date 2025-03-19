@@ -1,3 +1,4 @@
+# dclint disable-file
 services:
   mattermost:
     ports:

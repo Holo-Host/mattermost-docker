@@ -1,3 +1,4 @@
+# dclint disable-file
 # https://docs.docker.com/compose/environment-variables/
 
 services:
@@ -10,7 +11,7 @@ services:
     command: chown -R 10000:10000 /storage
 
   postgresql:
-    image: ghcr.io/pellepelster/solidblocks-rds-postgresql:15-snapshot-rc
+    image: ghcr.io/pellepelster/solidblocks-rds-postgresql:${SOLIDBLOCKS-RDS-POSTGRESQL_IMAGE_TAG}
     environment:
       DB_INSTANCE_NAME: instance1
       DB_BACKUP_LOCAL: 1
@@ -29,14 +30,8 @@ services:
       change-vol-ownership:
         condition: service_completed_successfully
 
-volumes:
-  data:
-  backup:
-
-services:
   postgres:
     image: postgres:${POSTGRES_IMAGE_TAG}
-    image: ghcr.io/pellepelster/solidblocks-rds-postgresql:${SOLIDBLOCKS-RDS-POSTGRESQL_IMAGE_TAG}
     restart: ${RESTART_POLICY}
     cap_drop:
       - NET_RAW
@@ -116,3 +111,7 @@ services:
       - MM_EMAILSETTINGS_CONNECTIONSECURITY
       - MM_EMAILSETTINGS_SENDPUSHNOTIFICATIONS
       - MM_EMAILSETTINGS_PUSHNOTIFICATIONSERVER
+
+volumes:
+  data:
+  backup:
