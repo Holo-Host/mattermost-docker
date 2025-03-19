@@ -2,7 +2,9 @@
   "rules": {
     "no-version-field": 0,
     "require-quotes-in-ports": 1,
-    "services-alphabetical-order": 2
+    "services-alphabetical-order": 1,
+    "no-unbound-port-interfaces": 1,
+    "service-image-require-explicit-tag": 1
   },
   "quiet": true,
   "debug": true,
