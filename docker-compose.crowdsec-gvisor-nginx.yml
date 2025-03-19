@@ -110,6 +110,8 @@ services:
     ports:
       - ${HTTPS_PORT}:443
       - ${HTTP_PORT}:80
+    networks: # Correctly use the custom network
+      - mattermost-network
 
   mattermost:
     ports:
@@ -125,9 +127,10 @@ volumes:
     name: shared-webroot
 
 networks:
-  crowdsec:
+  # This network name is also being used for Let's Encrypt certificate renewal
+  mattermost-network: # Define the custom network (correctly)
     driver: bridge
-  # This network name is being used for Let's Encrypt certificate renewal
-  default:
-    name: mattermost
+    # Optional: If you need external access, set external: true
+    # external: true
+  crowdsec:
     driver: bridge

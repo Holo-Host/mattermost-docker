@@ -27,6 +27,8 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp
+    networks: # Correctly use the custom network
+      - mattermost-network
 
   postgres:
     image: postgres:${POSTGRES_IMAGE_TAG}
@@ -57,9 +59,12 @@ services:
     tmpfs:
       - /tmp
       - /var/run/postgresql
+    networks: # Correctly use the custom network
+      - mattermost-network
 
 networks:
-  # This network name is being used for Let's Encrypt certificate renewal
-  default:
-    name: mattermost
+  # This network name is also being used for Let's Encrypt certificate renewal
+  mattermost-network: # Define the custom network (correctly)
     driver: bridge
+    # Optional: If you need external access, set external: true
+    # external: true
