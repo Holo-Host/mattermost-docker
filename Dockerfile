@@ -6,7 +6,7 @@ FROM mattermost/mattermost-team-edition:${MATTERMOST_IMAGE_TAG}
 USER root
 
 # Install iptables and clean up afterwards
-RUN mkdir -p /var/lib/apt/lists/partial && apt-get update && apt-get install -y --no-install-recommends iptables && rm -r /var/lib/apt/lists/*
+RUN mkdir -p /var/lib/apt/lists/partial && apt-get update && apt-get install -y --no-install-recommends iptables sudo && rm -r /var/lib/apt/lists/*
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
