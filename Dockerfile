@@ -11,7 +11,7 @@ RUN mkdir -p /var/lib/apt/lists/partial && apt-get update && apt-get install -y 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Force iptables to use the legacy backend
-RUN update-alternatives --set iptables /usr/sbin/iptables-legacy && update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy && update-alternatives --set arptables /usr/sbin/arptables-legacy && update-alternatives --set ebtables /usr/sbin/ebtables-legacy && chmod +x /usr/local/bin/entrypoint.sh
+RUN update-alternatives --set iptables /usr/sbin/iptables-legacy && update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy && chmod +x /usr/local/bin/entrypoint.sh
 
 # Switch back to correct user
 USER mattermost
