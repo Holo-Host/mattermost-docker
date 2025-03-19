@@ -27,6 +27,7 @@ This has meant the following changes/additions:
 - Hardening system via `sysctl`.  See `holo/99-hardening.conf`.
 - Investigated Content Trust for Docker
 - Taken initial steps towards future integration of [Solidblocks RDS PostgreSQL](https://pellepelster.github.io/solidblocks/rds/index.html).  A containerized PostgreSQL database with an all batteries included backup solution powered by [pgBackRest](https://pgbackrest.org/).
+- Reworked networking for Mattermost container to be able to connect to Postgres container despite restrictions imposed by `runsc` sandboxing.
 
 ## Security Audits
 ### Manual
