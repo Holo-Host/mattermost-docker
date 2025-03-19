@@ -25,29 +25,25 @@ services:
     networks:
       crowdsec:
     environment:
-      - DOCKER_HOST: tcp://socket-proxy:2375
-      # timezone inside container
-      - TZ
-      - "DIUN_WATCH_WORKERS=20"
-      - "DIUN_WATCH_SCHEDULE=0 */6 * * *"
-      - "DIUN_WATCH_JITTER=30s"
-      - "DIUN_PROVIDERS_DOCKER=true"
-      - "DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true"
+      DOCKER_HOST: tcp://socket-proxy:2375
+      TZ: ${TZ}
+      DIUN_WATCH_WORKERS: 20
+      DIUN_WATCH_SCHEDULE: 0 */6 * * *
+      DIUN_WATCH_JITTER: 30s
+      DIUN_PROVIDERS_DOCKER: true
+      DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: true
+      DIUN_NOTIF_NTFY_ENDPOINT: https://ntfy.sh
+      DIUN_NOTIF_NTFY_TOPIC: UOZt3Rq4VidyJyzt
+      DIUN_NOTIF_NTFY_PRIORITY: 3
+      DIUN_NOTIF_NTFY_TAGS: mattermost-hcloud
+      DIUN_NOTIF_NTFY_TIMEOUT: 10s
+      DIUN_NOTIF_NTFY_TEMPLATETITLE: "{{ .Entry.Image }} released"
+      DIUN_NOTIF_NTFY_TEMPLATEBODY: |
+        Docker tag {{ .Entry.Image }} which you subscribed to through {{ .Entry.Provider }} provider has been released.
     depends_on:
       - 'socket-proxy'
     volumes:
       - "./diun_data:/data"
-    notif:
-      ntfy:
-        endpoint: https://ntfy.sh
-        topic: UOZt3Rq4VidyJyzt
-        priority: 3
-        tags:
-          - mattermost-hcloud
-        timeout: 10s
-        templateTitle: "{{ .Entry.Image }} released"
-        templateBody: |
-          Docker tag {{ .Entry.Image }} which you subscribed to through {{ .Entry.Provider }} provider has been released.
 
   socket-proxy:
     container_name: socket-proxy

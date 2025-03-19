@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "no-version-field": 0,
+    "require-quotes-in-ports": 1,
+    "services-alphabetical-order": 2
+  },
+  "quiet": true,
+  "debug": true,
+  "exclude": [
+    "tests"
+  ]
+}
