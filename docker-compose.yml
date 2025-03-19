@@ -1,8 +1,9 @@
 # https://docs.docker.com/compose/environment-variables/
-name: holo-mattermost-docker
+name: holo-mm
 
 services:
   mattermost:
+    container_name: mattermost
     image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG}
     env_file: ./.env
     depends_on:
@@ -32,6 +33,7 @@ services:
       - mattermost-network
 
   postgres:
+    container_name: postgres
     image: postgres:${POSTGRES_IMAGE_TAG}
     volumes:
       - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
