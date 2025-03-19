@@ -46,9 +46,9 @@ services:
     restart: ${RESTART_POLICY}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 2s
-      timeout: 5s
-      retries: 10
+      interval: 5s # Was 2s
+      timeout: 10s # Was 5s
+      retries: 20 # Was 10
     cap_drop:
       - NET_RAW
       - SYS_CHROOT
