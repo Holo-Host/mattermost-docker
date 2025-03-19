@@ -1,19 +1,41 @@
 # https://docs.docker.com/compose/environment-variables/
+name: holo-mattermost-docker
+
 services:
-  postgres:
-    image: postgres:${POSTGRES_IMAGE_TAG}
-    pull_policy: if_not_present
+  mattermost:
+    image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG}
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${MATTERMOST_CONFIG_PATH}:/mattermost/config:rw
+      - ${MATTERMOST_DATA_PATH}:/mattermost/data:rw
+      - ${MATTERMOST_LOGS_PATH}:/mattermost/logs:rw
+      - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
+      - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
+      - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
+    environment:
+      env_file: .env
     restart: ${RESTART_POLICY}
+    healthcheck:
+      test: ["CMD", "wget", "-nv", "-t 1", "--spider", "{$MM_URL}:${HTTP_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     cap_drop:
       - NET_RAW
       - SYS_CHROOT
+    pids_limit: 200
+    read_only: ${MATTERMOST_CONTAINER_READONLY}
+    runtime: runsc
     security_opt:
       - no-new-privileges:true
-    pids_limit: 100
-    read_only: true
     tmpfs:
       - /tmp
-      - /var/run/postgresql
+
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG}
     volumes:
       - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
     environment:
@@ -24,41 +46,21 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_DB
+    restart: ${RESTART_POLICY}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 2s
       timeout: 5s
       retries: 10
-
-  mattermost:
-    depends_on:
-      - postgres:
-          condition: service_healthy
-          restart: true
-    image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG}
-    restart: ${RESTART_POLICY}
-    runtime: runsc
     cap_drop:
       - NET_RAW
       - SYS_CHROOT
+    pids_limit: 100
+    pull_policy: if_not_present
+    read_only: true
     security_opt:
       - no-new-privileges:true
-    pids_limit: 200
-    read_only: ${MATTERMOST_CONTAINER_READONLY}
     tmpfs:
       - /tmp
-    volumes:
-      - ${MATTERMOST_CONFIG_PATH}:/mattermost/config:rw
-      - ${MATTERMOST_DATA_PATH}:/mattermost/data:rw
-      - ${MATTERMOST_LOGS_PATH}:/mattermost/logs:rw
-      - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
-      - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
-      - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
-    environment:
-      env_file:
-        - .env
-    healthcheck:
-      test: ["CMD", "wget", "-nv", "-t 1", "--spider", "{$MM_URL}:${HTTP_PORT}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - /var/run/postgresql
+
