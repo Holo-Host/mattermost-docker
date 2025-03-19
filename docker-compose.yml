@@ -22,7 +22,7 @@ services:
       - SYS_CHROOT
     pids_limit: 200
     read_only: ${MATTERMOST_CONTAINER_READONLY}
-    runtime: runsc
+    runtime: runsc --network=container:holo-mattermost-docker-postgres-1
     security_opt:
       - no-new-privileges:true
     tmpfs:
