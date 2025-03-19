@@ -16,18 +16,19 @@ services:
       - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
       - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
       - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
+      - ./resolv.conf:/etc/resolv.conf:ro 
     restart: ${RESTART_POLICY}
     cap_drop:
       - NET_RAW
       - SYS_CHROOT
     pids_limit: 200
     read_only: ${MATTERMOST_CONTAINER_READONLY}
-    runtime: runsc --network=container:holo-mattermost-docker-postgres-1
+    runtime: runsc
     security_opt:
       - no-new-privileges:true
     tmpfs:
       - /tmp
-    networks: # Correctly use the custom network
+    networks:
       - mattermost-network
 
   postgres:
@@ -59,7 +60,7 @@ services:
     tmpfs:
       - /tmp
       - /var/run/postgresql
-    networks: # Correctly use the custom network
+    networks:
       - mattermost-network
 
 networks:
