@@ -91,8 +91,8 @@ services:
     cap_drop:
       - NET_RAW
       - SYS_CHROOT
-    security_opt:
-      - no-new-privileges:true
+        #    security_opt:
+        #      - no-new-privileges:true
     pids_limit: 100
     read_only: true
     tmpfs:
