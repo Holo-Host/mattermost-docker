@@ -2,17 +2,17 @@
     "live-restore": true,
     "userland-proxy": false,
     "default-ulimits": {
-	"nofile": {
-	    "Hard": 64000,
-	    "Name": "nofile",
+        "nofile": {
+            "Hard": 64000,
+            "Name": "nofile",
             "Soft": 64000
-	}
+        }
     },
     "icc": false,
-    "no-new-privileges": true,
     "runtimes": {
         "runsc": {
             "path": "/usr/bin/runsc"
         }
-    }
+    },
+    "bridge": none
 }
