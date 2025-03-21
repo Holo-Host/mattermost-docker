@@ -88,11 +88,6 @@ services:
       - crowdsec.enable=true
       - crowdsec.labels.type=nginx
     ## https://docs.crowdsec.net/docs/next/data_sources/docker#use_container_labels
-    cap_drop:
-      - NET_RAW
-      - SYS_CHROOT
-        #    security_opt:
-        #      - no-new-privileges:true
     pids_limit: 100
     read_only: true
     tmpfs:

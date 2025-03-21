@@ -4,11 +4,7 @@ name: holo-mm
 services:
   mattermost:
     container_name: mattermost
-    build:
-      context: .
-      args:
-        - MATTERMOST_IMAGE_TAG=${MATTERMOST_IMAGE_TAG}
-      network: host
+    image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG} 
     env_file: ./.env
     depends_on:
       postgres:
@@ -21,15 +17,7 @@ services:
       - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
       - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
       - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
-      - ./resolv.conf:/etc/resolv.conf:ro 
-      - ./entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
-    entrypoint: /usr/local/bin/entrypoint.sh 
     restart: ${RESTART_POLICY}
-    cap_drop:
-      - NET_RAW
-      - SYS_CHROOT
-    cap_add:
-      - NET_ADMIN 
     pids_limit: 200
     read_only: ${MATTERMOST_CONTAINER_READONLY}
     runtime: sysbox-runc
@@ -75,5 +63,3 @@ networks:
   # This network name is also being used for Let's Encrypt certificate renewal
   mattermost-network: # Define the custom network (correctly)
     driver: bridge
-    # Optional: If you need external access, set external: true
-    # external: true
