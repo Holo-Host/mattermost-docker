@@ -32,7 +32,7 @@ services:
       - NET_ADMIN 
     pids_limit: 200
     read_only: ${MATTERMOST_CONTAINER_READONLY}
-    runtime: runsc
+    runtime: sysbox-runc
     tmpfs:
       - /tmp
     networks:

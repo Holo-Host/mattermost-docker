@@ -83,7 +83,7 @@ services:
     container_name: nginx_mattermost
     image: nginx:${NGINX_IMAGE_TAG}
     restart: ${RESTART_POLICY}
-    runtime: runsc
+    runtime: sysbox-runc
     labels:
       - crowdsec.enable=true
       - crowdsec.labels.type=nginx
