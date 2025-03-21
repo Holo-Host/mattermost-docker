@@ -1,0 +1,186 @@
+# https://docs.docker.com/compose/environment-variables/
+name: mmharden
+
+services:
+  crowdsec:
+    image: crowdsecurity/crowdsec
+    depends_on:
+      - 'socket-proxy'
+    volumes:
+      - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml
+      - crowdsec-db:/var/lib/crowdsec/data/
+      - crowdsec-config:/etc/crowdsec/
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      COLLECTIONS: "crowdsecurity/nginx"
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      crowdsec:
+    restart: ${RESTART_POLICY}
+
+  diun:
+    image: crazymax/diun:latest
+    depends_on:
+      - 'socket-proxy'
+    volumes:
+      - "./diun_data:/data"
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+      TZ: ${TZ}
+      DIUN_WATCH_WORKERS: 20
+      DIUN_WATCH_SCHEDULE: 0 */6 * * *
+      DIUN_WATCH_JITTER: 30s
+      DIUN_PROVIDERS_DOCKER: true
+      DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: true
+      DIUN_NOTIF_NTFY_ENDPOINT: https://ntfy.sh
+      DIUN_NOTIF_NTFY_TOPIC: UOZt3Rq4VidyJyzt
+      DIUN_NOTIF_NTFY_PRIORITY: 3
+      DIUN_NOTIF_NTFY_TAGS: mattermost-hcloud
+      DIUN_NOTIF_NTFY_TIMEOUT: 10s
+      DIUN_NOTIF_NTFY_TEMPLATETITLE: "{{ .Entry.Image }} released"
+      DIUN_NOTIF_NTFY_TEMPLATEBODY: |
+        Docker tag {{ .Entry.Image }} which you subscribed to through {{ .Entry.Provider }} provider has been released.
+    networks:
+      crowdsec:
+    command: serve
+    restart: ${RESTART_POLICY}
+    labels:
+      - "diun.enable=true"
+
+  mattermost:
+    image: mattermost/${MATTERMOST_IMAGE}:${MATTERMOST_IMAGE_TAG} 
+    container_name: mattermost
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ${MATTERMOST_CONFIG_PATH}:/mattermost/config:rw
+      - ${MATTERMOST_DATA_PATH}:/mattermost/data:rw
+      - ${MATTERMOST_LOGS_PATH}:/mattermost/logs:rw
+      - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
+      - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
+      - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
+    env_file: ./.env
+    ports:
+      - ${CALLS_PORT}:${CALLS_PORT}/udp
+      - ${CALLS_PORT}:${CALLS_PORT}/tcp
+    networks:
+      - mattermost-network
+    restart: ${RESTART_POLICY}
+    pids_limit: 200
+    read_only: ${MATTERMOST_CONTAINER_READONLY}
+    runtime: sysbox-runc
+    tmpfs:
+      - /tmp
+
+  nginx:
+    image: nginx:${NGINX_IMAGE_TAG}
+    container_name: nginx_mattermost
+    depends_on:
+      - mattermost
+    volumes:
+      - ${NGINX_CONFIG_PATH}:/etc/nginx/conf.d:ro
+      - ${NGINX_DHPARAMS_FILE}:/dhparams4096.pem
+      - ${CERT_PATH}:/cert.pem:ro
+      - ${KEY_PATH}:/key.pem:ro
+      - shared-webroot:/usr/share/nginx/html
+    environment:
+      - TZ
+    ports:
+      - ${HTTP_PORT}:80
+      - ${HTTPS_PORT}:443
+    networks: # Correctly use the custom network
+      - mattermost-network
+    restart: ${RESTART_POLICY}
+    labels:
+      - crowdsec.enable=true
+      - crowdsec.labels.type=nginx
+    ## https://docs.crowdsec.net/docs/next/data_sources/docker#use_container_labels
+    pids_limit: 100
+    read_only: true
+    runtime: sysbox-runc
+    tmpfs:
+      - /var/run
+      - /var/cache
+      - /var/log/nginx
+
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG}
+    container_name: postgres
+    volumes:
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+    environment:
+      # timezone inside container
+      - TZ
+
+      # necessary Postgres options/variables
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    networks:
+      - mattermost-network
+    restart: ${RESTART_POLICY}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s # Was 2s
+      timeout: 10s # Was 5s
+      retries: 20 # Was 10
+    cap_drop:
+      - NET_RAW
+      - SYS_CHROOT
+    pids_limit: 100
+    pull_policy: if_not_present
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+  socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:latest
+    container_name: socket-proxy
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+    environment:
+      INFO: 1
+      CONTAINERS: 1
+      POST: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      DISTRIBUTION: 0
+      EXEC: 0
+      GRPC: 0
+      IMAGES: 0
+      NETWORKS: 0
+      NODES: 0
+      PLUGINS: 0
+      SERVICES: 0
+      SESSION: 0
+      SWARM: 0
+      SYSTEM: 0
+      TASKS: 0
+      VOLUMES: 0
+    networks:
+      crowdsec:
+    restart: ${RESTART_POLICY}
+    read_only: true
+    tmpfs:
+      - /run
+
+networks:
+  # This network name is also being used for Let's Encrypt certificate renewal
+  mattermost-network:
+    driver: bridge
+  crowdsec:
+    driver: bridge
+
+volumes:
+  crowdsec-db:
+  crowdsec-config:
+  # Shared volume for Let's Encrypt certificate renewal with a webroot
+  shared-webroot:
+    name: shared-webroot

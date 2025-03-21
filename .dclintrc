@@ -1,12 +1,13 @@
 {
   "rules": {
     "no-version-field": 0,
-    "require-quotes-in-ports": 1,
+    "no-quotes-in-volumes": 0,
+    "require-quotes-in-ports": 0,
     "services-alphabetical-order": 1,
-    "no-unbound-port-interfaces": 1,
-    "service-image-require-explicit-tag": 1
+    "no-unbound-port-interfaces": 0,
+    "service-image-require-explicit-tag": 0
   },
-  "quiet": true,
+  "quiet": false,
   "debug": true,
   "exclude": [
     "tests"

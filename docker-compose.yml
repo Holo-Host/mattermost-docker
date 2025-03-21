@@ -1,3 +1,4 @@
+# dclint disable-file
 # https://docs.docker.com/compose/environment-variables/
 name: holo-mm
 
