@@ -16,8 +16,10 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     networks:
-      crowdsec:
+      monitoring-network:
+      frontend-network:
     restart: ${RESTART_POLICY}
+    runtime: sysbox-runc
 
   diun:
     image: crazymax/diun:latest
@@ -42,7 +44,7 @@ services:
       DIUN_NOTIF_NTFY_TEMPLATEBODY: |
         Docker tag {{ .Entry.Image }} which you subscribed to through {{ .Entry.Provider }} provider has been released.
     networks:
-      crowdsec:
+      monitoring-network:
     command: serve
     restart: ${RESTART_POLICY}
     labels:
@@ -67,7 +69,7 @@ services:
       - ${CALLS_PORT}:${CALLS_PORT}/udp
       - ${CALLS_PORT}:${CALLS_PORT}/tcp
     networks:
-      - mattermost-network
+      backend-network:
     restart: ${RESTART_POLICY}
     pids_limit: 200
     read_only: ${MATTERMOST_CONTAINER_READONLY}
@@ -92,7 +94,8 @@ services:
       - ${HTTP_PORT}:80
       - ${HTTPS_PORT}:443
     networks: # Correctly use the custom network
-      - mattermost-network
+      backend-network:
+      frontend-network:
     restart: ${RESTART_POLICY}
     labels:
       - crowdsec.enable=true
@@ -120,7 +123,7 @@ services:
       - POSTGRES_PASSWORD
       - POSTGRES_DB
     networks:
-      - mattermost-network
+      backend-network:
     restart: ${RESTART_POLICY}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
@@ -165,7 +168,7 @@ services:
       TASKS: 0
       VOLUMES: 0
     networks:
-      crowdsec:
+      monitoring-network:
     restart: ${RESTART_POLICY}
     read_only: true
     tmpfs:
@@ -173,9 +176,11 @@ services:
 
 networks:
   # This network name is also being used for Let's Encrypt certificate renewal
-  mattermost-network:
+  frontend-network:
     driver: bridge
-  crowdsec:
+  backend-network:
+    driver: bridge
+  monitoring-network:
     driver: bridge
 
 volumes:
