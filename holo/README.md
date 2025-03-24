@@ -19,7 +19,6 @@ This has meant the following changes/additions:
 - N/A: Use `--internal`
 - N/A: No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
 - Document actions taken as a result of mitigating issues surfaced by docker-bench-security and am-i-isolated.
-- No longer using [`runsc` as the default runtime on the host](https://github.com/glotcode/docker-run/blob/main/docs/install/ubuntu-20.10-gvisor.md#set-runsc-as-the-default-runtime).  Only using `runsc` as the container runtime for mattermost and nginx in Compose files.  `runsc` installed as per [gVisor Docker Quick Start](https://gvisor.dev/docs/user_guide/quick_start/docker/).
 - Implemented Crowdsec on host. See [Example Docker Compose for Crowdsec repo](https://github.com/crowdsecurity/example-docker-compose) using [crowdsecurity/crowdsec](https://hub.docker.com/r/crowdsecurity/crowdsec) images and docker-socket-proxy for nginx usage.
 - Added `docker-compose.crowdsec-gvisor-nginx.yml`.
 - Adding [Diun](https://crazymax.dev/diun/).
@@ -27,7 +26,8 @@ This has meant the following changes/additions:
 - Hardening system via `sysctl`.  See `holo/99-hardening.conf`.
 - Investigated Content Trust for Docker
 - Taken initial steps towards future integration of [Solidblocks RDS PostgreSQL](https://pellepelster.github.io/solidblocks/rds/index.html).  A containerized PostgreSQL database with an all batteries included backup solution powered by [pgBackRest](https://pgbackrest.org/).
-- Reworked networking for Mattermost container to be able to connect to Postgres container despite restrictions imposed by `runsc` sandboxing. See [gVisor FAQ for the gory details](https://gvisor.dev/docs/user_guide/faq/#docker-bridge).
+- Replaced runsc with sysbox-runc for container sandboxing
+- Network segmentation for additional security.
 
 ## Security Audits
 ### Manual
