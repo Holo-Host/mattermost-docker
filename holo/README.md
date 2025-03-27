@@ -26,7 +26,7 @@ This has meant the following changes/additions:
 - Hardening system via `sysctl`.  See `holo/99-hardening.conf`.
 - Investigated Content Trust for Docker
 - Taken initial steps towards future integration of [Solidblocks RDS PostgreSQL](https://pellepelster.github.io/solidblocks/rds/index.html).  A containerized PostgreSQL database with an all batteries included backup solution powered by [pgBackRest](https://pgbackrest.org/).
-- Replaced runsc with sysbox-runc for container sandboxing
+- Replaced `runsc` with `sysbox-runc` for container sandboxing
 - Network segmentation for additional security.
 
 ## Security Audits
@@ -38,7 +38,30 @@ This has meant the following changes/additions:
 - [Docker Bench for Security](https://github.com/docker/docker-bench-security) score: 36
 - [Am I Isolated](https://github.com/edera-dev/am-i-isolated)
 - [Docker Compose Linter (DCLint)](https://github.com/zavoloklom/docker-compose-linter): All actual validation errors reported in `docker-compose.yml` and `docker-compose.crowdsec-gvisor-nginx.yml` have been fixed. 
-## Install & Usage
+## Operation
+### Names of Services in the Mattermost Stack
+- mattermost
+- mmharden-crowdsec-1
+- mmharden-diun-1
+- nginx_mattermost
+- postgres
+- socket-proxy
+### Starting the Mattermost Stack
+`docker compose -f docker-compose.harden.yml up -d`
+### Stopping the Mattermost Stack
+`docker compose -f docker-compose.harden.yml down`
+### Stopping Specific Services
+`docker compose -f docker-compose.harden.yml stop <servicename>`
+### Starting Specific Stopped Services
+`docker compose -f docker-compose.harden.yml start <servicename>`
+### Restarting Specific Services
+`docker compose -f docker-compose.harden.yml restart <servicename>`
+
+### Executing Commands in Running Containers
+`docker compose -f docker-compose.harden.yml exec <servicename> <command> <options>`
+`docker compose -f docker-compose.harden.yml exec postgres psql --version`
+
+## Installation
 ### Hetzner Cloud Host Creation
 If you don't already have an existing host or need to create a new one for scaling or disaster recovery, take the following steps.  Otherwise you can skip to the next section.
 
@@ -47,7 +70,7 @@ If you don't already have an existing host or need to create a new one for scali
 3. The result will include an IP address and a root password, so that you can `ssh` into the server.  You should do so immediately and setup SSH Key Authentication and prohibit the use of a password for Root SSH login.
 
 ### Mattermost Backup and Restore: AWS Migration Edition
-1. Obtain a `pg_dump` compatible backup of your Mattermost database.  The following script (adapted from [rds-s3-database-backup](https://github.com/bamf-health/rds-s3-database-backup)) will work with an existing AWS RDS hosted Mattermost database:
+1. Obtain a `pg_dump` compatible backup of your Mattermost database.  You will need to have AWS CLI installed and configured on a host that has access to RDS.  The following script (adapted from [rds-s3-database-backup](https://github.com/bamf-health/rds-s3-database-backup)) will work with an existing AWS RDS hosted Mattermost database and the resulting dump is stored in AWS S3:  
 ```
 #!/bin/sh
 # Set default connection parameters for pg_dump
@@ -64,9 +87,10 @@ echo Backing up ${PGHOST}/${PGDATABASE} to ${TARGET}
 # export PGPASSWORD=${DATABASE_PASSWORD}
 pg_dump --clean -Z 9 -v -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} | aws s3 cp --storage-class STANDARD_IA --sse aws:kms - ${TARGET}
 ```
-2. The resulting dump is stored in AWS S3.  It can be restored thusly on the destination server, `aws s3 cp s3://db.dr1.chat.holo.host - | gunzip | psql`
-3. Take a copy of `config/config.json`.  In our case, we also had to extract all the customizations in that file and replicate them in `docker-compose.yml` and `.env`.
-4. No need to backup stored files, since we are using S3 for that.
+2. Take a copy of `config/config.json`.  In our case, we also had to extract all the customizations in that file and replicate them in `docker-compose.yml` and `.env`.
+3. No need to backup stored files, since we are using S3 for that.
+4. Install and configure AWS CLI on your destination server so that it can access the database dump in S3.  Test the S3 connection. 
+4. The database can be restored thusly on the destination server, `aws s3 cp s3://db.dr1.chat.holo.host - | gunzip | psql`
 
 ### Mattermost deployment to Hetzner Cloud Host
 Refer to the [Mattermost Docker deployment guide](https://docs.mattermost.com/install/install-docker.html) for detailed instructions on how to deploy Mattermost to the newly created server. The following are the abbreviated steps:
