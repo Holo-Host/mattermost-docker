@@ -134,10 +134,11 @@ start_time=$(date +%s)
 # Export password for psql within the exec command's environment
 export PGPASSWORD="${POSTGRES_PASSWORD}"
 
-# Perform the streaming restore
-# We need to handle the pipeline exit status carefully
+# Perform the streaming restore with pv
+# Use pv with '-i 0.5' to update roughly every half second and '-N restore' to label the pv output
+# Use pv with '-b' (bytes) and potentially '-t' (time) and '-r' (rate). '-p' (percentage) won't work well here.
 set +e # Temporarily disable exit on error to capture the pipeline status
-aws s3 cp "${S3_PATH}" - | gunzip -c | docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"
+aws s3 cp "${S3_PATH}" - | gunzip -c | pv -i 5 -b -t -r -N restore | docker compose -f "${COMPOSE_FILE}" exec -T postgres psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}"
 RESTORE_STATUS=$? # Capture the exit status of the *last* command in the pipeline (psql)
 set -e # Re-enable exit on error
 
