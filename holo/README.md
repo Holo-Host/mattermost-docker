@@ -70,7 +70,7 @@ If you don't already have an existing host or need to create a new one for scali
 3. The result will include an IP address and a root password, so that you can `ssh` into the server.  You should do so immediately and setup SSH Key Authentication and prohibit the use of a password for Root SSH login.
 
 ### Mattermost Backup and Restore: AWS Migration Edition
-1. Obtain a `pg_dump` compatible backup of your Mattermost database.  You will need to have AWS CLI installed and configured on a host that has access to RDS.  The following script (adapted from [rds-s3-database-backup](https://github.com/bamf-health/rds-s3-database-backup)) will work with an existing AWS RDS hosted Mattermost database and the resulting dump is stored in AWS S3:  
+1. Obtain a `pg_dump` compatible backup of your Mattermost database.  You will need to have [AWS CLI](https://docs.aws.amazon.com/cli/) installed and configured on a host that has access to RDS.  The following script (adapted from [rds-s3-database-backup](https://github.com/bamf-health/rds-s3-database-backup)) will work with an existing AWS RDS hosted Mattermost database and the resulting dump is stored in AWS S3:  
 ```
 #!/bin/sh
 # Set default connection parameters for pg_dump
@@ -107,6 +107,14 @@ Refer to the [Mattermost Docker deployment guide](https://docs.mattermost.com/in
 - [How to use secrets in Docker Compose](https://docs.docker.com/compose/how-tos/use-secrets/)
 - [RDS PostgreSQL](https://pellepelster.github.io/solidblocks/rds/index.html): A containerized PostgreSQL database with an all batteries included backup solution powered by [pgBackRest](https://pgbackrest.org/).
 - [Hetzner Cloud | Snapshot-as-Backup](https://github.com/fbrettnich/hcloud-snapshot-as-backup): This script automatically creates snapshots of your Hetzner Cloud Servers and deletes the old ones.
+- [Dumping postgres databases with Docker](https://diegoquintanav.github.io/dumping-postgres-db-with-docker.html)
+- [Postgres Docker Quick Reference](https://github.com/docker-library/docs/blob/master/postgres/README.md)
+- [From Docker CLI to Docker Compose](https://www.thedigitalcatonline.com/blog/2022/02/19/from-docker-cli-to-docker-compose/)
+- [pirate/docker-compose-backup.sh](https://gist.github.com/pirate/265e19a8a768a48cf12834ec87fb0eed)
+- [Docker: Backup and restore](https://www.ionos.co.uk/digitalguide/server/security/docker-backup/)
+- [Docker-compose exec using stdin as an input](https://dev.to/codewithcats/docker-compose-exec-using-stdin-as-an-input-46lh)
+- [How to dump and restore a PostgreSQL from a Docker Container](https://masb0ymas.com/blog/how-to-dump-and-restore-a-postgres-database-from-a-docker-container)
+
 
 
 NB: Many of the official supported Mattermost deployment options install Enterprise Edition by default and often omit information on installing Team Edition instead.  For example, [Install Mattermost Omnibus](https://docs.mattermost.com/install/installing-mattermost-omnibus.html) does this.
