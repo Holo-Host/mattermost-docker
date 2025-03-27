@@ -126,7 +126,8 @@ services:
       backend-network:
     restart: ${RESTART_POLICY}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      # Explicitly specify the database name for the health check
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s # Was 2s
       timeout: 10s # Was 5s
       retries: 20 # Was 10
