@@ -94,13 +94,21 @@ echo "Backup file found."
 
 # --- Check Docker Compose Service Status ---
 echo "Checking status of postgres service in ${COMPOSE_FILE}..."
-if ! docker compose -f "${COMPOSE_FILE}" ps --status=running postgres | grep -q 'running'; then
-    echo "Error: The 'postgres' service defined in '${COMPOSE_FILE}' is not running."
-    echo "Please start your Docker Compose project first (e.g., 'docker compose -f ${COMPOSE_FILE} up -d postgres')."
+# Use --format to get the raw state. Redirect stderr to /dev/null and use || to handle cases where the service isn't found at all.
+POSTGRES_STATE=$(docker compose -f "${COMPOSE_FILE}" ps --status=running --format '{{.State}}' postgres 2>/dev/null || echo "not found")
+
+# Check if the state *starts with* 'running' to correctly handle 'running' or 'running (healthy)'
+if [[ "$POSTGRES_STATE" != running* ]]; then
+    echo "Error: The 'postgres' service defined in '${COMPOSE_FILE}' is not running or could not be found by Docker Compose."
+    # Provide more context if a state was found but wasn't 'running'
+    if [[ "$POSTGRES_STATE" != "not found" ]]; then
+      echo "Detected state: '${POSTGRES_STATE}'"
+    fi
+    echo "Please ensure the service is running and associated with the project (check 'docker ps' and 'docker compose -f ${COMPOSE_FILE} ps')."
+    echo "You might need to run: 'docker compose -f ${COMPOSE_FILE} up -d postgres'"
     exit 1
 fi
-echo "'postgres' service is running."
-
+echo "'postgres' service is running (State: ${POSTGRES_STATE})."
 
 # --- Execute Restore ---
 echo "------------------------------------------------------------"
