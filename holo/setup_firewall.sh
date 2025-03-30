@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Configuration Placeholders ---
-TRUSTED_SSH_SOURCE="103.7.206.76/32" # Example: "1.2.3.4/32" for a single IP, "1.2.3.0/24" for a subnet
+# TRUSTED_SSH_SOURCE=".7.206.76/32" # Example: "1.2.3.4/32" for a single IP, "1.2.3.0/24" for a subnet
 EXTERNAL_INTERFACE="eth0"            # Example: "eth0"
 CALLS_PORT="8443"                                   # Example: Get this from your .env file (ensure it's just the number)
 # !!! END OF VALUES TO REPLACE !!!
@@ -39,15 +39,20 @@ echo " established/related connections allowed (INPUT/FORWARD)."
 
 # Allow SSH access
 # **IMPORTANT**: Restrict source IP if possible!
-iptables -A INPUT -p tcp --dport 22 -s ${TRUSTED_SSH_SOURCE} -j ACCEPT
-echo " SSH allowed from ${TRUSTED_SSH_SOURCE}."
+#iptables -A INPUT -p tcp --dport 22 -s ${TRUSTED_SSH_SOURCE} -j ACCEPT
+#echo " SSH allowed from ${TRUSTED_SSH_SOURCE}."
 # Fallback (less secure) - Allow SSH from anywhere:
-# iptables -A INPUT -p tcp --dport 22 -j ACCEPT
-# echo " WARNING: SSH allowed from ANY source."
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+echo " WARNING: SSH allowed from ANY source."
 
 # Allow ICMP (Ping requests) - Optional, uncomment if needed
 # iptables -A INPUT -p icmp --icmp-type 8 -j ACCEPT
 # echo " ICMP Echo Requests (Ping) allowed."
+
+# ---> ADD THIS RULE: Allow incoming HTTP (Port 80) directly to the host <---
+# Needed for Certbot --standalone running on the host
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+echo " HTTP (80/tcp) allowed to host (for standalone certbot)."
 
 # --- Docker Integration using DOCKER-USER Chain ---
 # Rules inserted here are processed *before* Docker's automatic rules.
