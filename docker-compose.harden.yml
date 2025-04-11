@@ -64,7 +64,6 @@ services:
       - ${MATTERMOST_PLUGINS_PATH}:/mattermost/plugins:rw
       - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
       - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
-    env_file: ./.env
     ports:
       - ${CALLS_PORT}:${CALLS_PORT}/udp
       - ${CALLS_PORT}:${CALLS_PORT}/tcp
