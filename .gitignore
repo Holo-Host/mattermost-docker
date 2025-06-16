@@ -2,6 +2,9 @@ volumes
 data
 certs
 .env
+.env.test
+config.json
+config-test.json
 docker-compose.override.yml
 docker-compose.override.yaml
 *~

@@ -94,6 +94,22 @@ pg_dump --clean -Z 9 -v -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} | aws s3 cp -
 
 ### Mattermost deployment to Hetzner Cloud Host
 Refer to the [Mattermost Docker deployment guide](https://docs.mattermost.com/install/install-docker.html) for detailed instructions on how to deploy Mattermost to the newly created server. The following are the abbreviated steps:
+- TBD
+
+## Secrets Management with Agebox
+### Installation
+### Configuration
+You can generate a new `age` keypair as follows:
+
+
+The default path that `agebox` will search for private keys is `~/.ssh`. If you want `agebox` to look elsewhere, you will need to set the `AGEBOX_PRIVATE_KEYS` environment variable to the appropriate path as illustrated with this example:
+
+`export AGEBOX_PRIVATE_KEYS=~/.config/sops/age`
+
+### Usage
+- Encryption: `agebox encrypt <envfile>`
+- Decryption: `agebox decrypt <envfile>`
+
 
 ## Key Resources
 - [Migrate Mattermost from one server to another](https://docs.mattermost.com/onboard/migrating-to-mattermost.html#migrate-mattermost-from-one-server-to-another): Migrate Mattermost from one server to another by backing up and restoring the Mattermost database and `config.json` file.
