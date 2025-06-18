@@ -39,6 +39,18 @@ if [[ -z "$BACKUP_FILENAME" ]]; then
     exit 1
 fi
 
+# Function to format duration in seconds to minutes and seconds
+format_duration() {
+  local seconds=$1
+  local minutes=$((seconds / 60))
+  local remaining_seconds=$((seconds % 60))
+  if (( minutes > 0 )); then
+    echo "${minutes} minute(s) and ${remaining_seconds} second(s)"
+  else
+    echo "${remaining_seconds} second(s)"
+  fi
+}
+
 # S3 bucket for storing the backup
 S3_BUCKET="db.dr1.chat.holo.host"
 
