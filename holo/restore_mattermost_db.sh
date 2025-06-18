@@ -8,64 +8,51 @@ set -u
 set -o pipefail
 
 # --- Configuration ---
-# Define the default Compose file name
-COMPOSE_FILE="docker-compose.harden.yml"
-# Define the S3 bucket (consider making this an argument or env var if it changes often)
-S3_BUCKET="db.dr1.chat.holo.host"
+# Get the directory where the script is located
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
-# Use the first argument as the env file path, or default to '../.env' if not provided
-# Adjust default path if your script is not in a 'scripts' subdir
-ENV_FILE="${1:-../.env}"
-BACKUP_FILENAME="${2}"
+# Default paths
+DEFAULT_ENV_FILE="${SCRIPT_DIR}/../.env"
+DEFAULT_COMPOSE_FILE="${SCRIPT_DIR}/../docker-compose.harden.yml"
 
+# --- Argument Parsing (Robust Method) ---
+if [[ -f "$1" ]]; then
+    # First argument is a file, so we assume it's the env file.
+    ENV_FILE="$1"
+    BACKUP_FILENAME="${2}"
+    echo "Using specified environment file: ${ENV_FILE}"
+else
+    # First argument is not a file, assume it's the backup filename.
+    ENV_FILE="${DEFAULT_ENV_FILE}"
+    BACKUP_FILENAME="${1}"
+    echo "Using default environment file: ${ENV_FILE}"
+fi
+
+# Derive Compose file path from ENV_FILE path
+COMPOSE_FILE="$(dirname "${ENV_FILE}")/docker-compose.harden.yml"
+
+# Validate that we have a backup filename
 if [[ -z "$BACKUP_FILENAME" ]]; then
-    echo "Usage: $0 <path_to_env_file> <backup_filename>"
+    echo "Usage: $0 [<path_to_env_file>] <backup_filename>"
+    echo "Example (default .env): $0 my_backup.sql.gz"
+    echo "Example (custom .env):  $0 ../.env.test my_backup.sql.gz"
     exit 1
 fi
 
-# --- Helper Functions ---
-usage() {
-  echo "Usage: $0 <backup_filename.sql.gz>"
-  echo "  Restores a PostgreSQL backup from an S3 bucket to the Docker Compose postgres service."
-  echo "  Reads database credentials (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)"
-  echo "  from the ${ENV_FILE} file in the current directory."
-  exit 1
-}
-
-# Function to format duration in seconds to minutes and seconds
-format_duration() {
-  local seconds=$1
-  local minutes=$((seconds / 60))
-  local remaining_seconds=$((seconds % 60))
-  if (( minutes > 0 )); then
-    echo "${minutes} minute(s) and ${remaining_seconds} second(s)"
-  else
-    echo "${remaining_seconds} second(s)"
-  fi
-}
-
-
-# --- Argument Parsing ---
-if [ "$#" -ne 1 ]; then
-  echo "Error: Incorrect number of arguments."
-  usage
-fi
-BACKUP_FILENAME="$1"
-
-# Validate filename format (basic check)
-if [[ ! "$BACKUP_FILENAME" =~ \.sql\.gz$ ]]; then
-  echo "Error: Backup filename must end with .sql.gz"
-  usage
-fi
+# S3 bucket for storing the backup
+S3_BUCKET="db.dr1.chat.holo.host"
 
 # --- Load Environment Variables ---
 if [ ! -f "${ENV_FILE}" ]; then
-  echo "Error: Environment file '${ENV_FILE}' not found in the current directory."
+  echo "Error: Environment file '${ENV_FILE}' not found."
+  exit 1
+fi
+if [ ! -f "${COMPOSE_FILE}" ]; then
+  echo "Error: Compose file '${COMPOSE_FILE}' not found."
   exit 1
 fi
 
 echo "Loading database configuration from ${ENV_FILE}..."
-# Source the .env file - Use 'set -a' to export all sourced variables temporarily
 set -a
 source "${ENV_FILE}"
 set +a
