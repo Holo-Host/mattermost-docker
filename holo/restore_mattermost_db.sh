@@ -12,8 +12,16 @@ set -o pipefail
 COMPOSE_FILE="docker-compose.harden.yml"
 # Define the S3 bucket (consider making this an argument or env var if it changes often)
 S3_BUCKET="db.dr1.chat.holo.host"
-# Path to the .env file (assumed to be in the same directory as the script)
-ENV_FILE=".env"
+
+# Use the first argument as the env file path, or default to '../.env' if not provided
+# Adjust default path if your script is not in a 'scripts' subdir
+ENV_FILE="${1:-../.env}"
+BACKUP_FILENAME="${2}"
+
+if [[ -z "$BACKUP_FILENAME" ]]; then
+    echo "Usage: $0 <path_to_env_file> <backup_filename>"
+    exit 1
+fi
 
 # --- Helper Functions ---
 usage() {
