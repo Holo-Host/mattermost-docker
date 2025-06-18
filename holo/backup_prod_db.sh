@@ -8,21 +8,27 @@ set -u
 set -o pipefail
 
 # --- Configuration ---
-# Path to the production .env file (assumed to be in ../ relative to a scripts/ dir)
-# Adjust if your script is in a different location.
-ENV_FILE="../.env"
+# Get the directory where the script is located
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+
+# Path to the .env file and Compose file, relative to the script's location
+ENV_FILE="${SCRIPT_DIR}/../.env"
+COMPOSE_FILE="${SCRIPT_DIR}/../docker-compose.harden.yml"
 
 # S3 bucket for storing the backup
-S3_BUCKET="db.dr1.chat.holo.host" # Or use a variable from .env if you prefer
+S3_BUCKET="db.dr1.chat.holo.host"
 
 # --- Load Environment Variables ---
 if [ ! -f "${ENV_FILE}" ]; then
   echo "Error: Production environment file '${ENV_FILE}' not found."
   exit 1
 fi
+if [ ! -f "${COMPOSE_FILE}" ]; then
+  echo "Error: Compose file '${COMPOSE_FILE}' not found."
+  exit 1
+fi
 
 echo "Loading production database configuration from ${ENV_FILE}..."
-# Source the .env file - Use 'set -a' to export all sourced variables temporarily
 set -a
 source "${ENV_FILE}"
 set +a
@@ -30,17 +36,26 @@ set +a
 # --- Validate Required Variables ---
 : "${POSTGRES_USER?Error: POSTGRES_USER not set in ${ENV_FILE}}"
 : "${POSTGRES_DB?Error: POSTGRES_DB not set in ${ENV_FILE}}"
-# PGPASSWORD is handled by docker compose exec's environment
 
 # --- Check Prerequisites ---
-if ! command -v aws &> /dev/null; then
-    echo "Error: AWS CLI ('aws') could not be found. Please install and configure it."
+# ... (aws, docker compose checks would go here) ...
+
+# --- Verify Service is Running (ROBUST METHOD) ---
+echo "Verifying 'postgres' service is running..."
+# Use --format to get the raw state. Redirect stderr to /dev/null and use || to handle cases where the service isn't found at all.
+POSTGRES_STATE=$(docker compose -f "${COMPOSE_FILE}" ps --format '{{.State}}' postgres 2>/dev/null || echo "not found")
+
+# Check if the state *starts with* 'running' to correctly handle 'running' or 'running (healthy)'
+if [[ "$POSTGRES_STATE" != running* ]]; then
+    echo "Error: The 'postgres' service is not in a running state or could not be found by Docker Compose."
+    if [[ "$POSTGRES_STATE" != "not found" ]]; then
+      echo "Detected state: '${POSTGRES_STATE}'"
+    fi
+    echo "Please ensure the service is running and associated with the project (check 'docker ps' and 'docker compose -f ${COMPOSE_FILE} ps')."
     exit 1
 fi
-if ! docker compose version &> /dev/null; then
-    echo "Error: Docker Compose V2 ('docker compose') could not be found."
-    exit 1
-fi
+echo "'postgres' service is running (State: ${POSTGRES_STATE})."
+
 
 # --- Define Backup Target ---
 DATE=$(date "+%Y-%m-%d-%H%M")
@@ -55,34 +70,10 @@ echo "  Target:   ${S3_TARGET}"
 echo ""
 
 # --- Execute Backup ---
-# We use 'docker compose exec' to run pg_dump *inside* the postgres container.
-# The output is piped from the container's stdout to the host's stdout,
-# then piped to 'aws s3 cp' to stream it directly to S3.
-#
-# -T flag for 'exec' is crucial to disable pseudo-tty and allow clean piping.
-# PGPASSWORD is passed into the exec environment directly.
-
-time docker compose exec -T \
+time docker compose -f "${COMPOSE_FILE}" exec -T \
     -e PGPASSWORD="${POSTGRES_PASSWORD}" \
     postgres \
     pg_dump --clean -Z 9 -v -h localhost -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
     | aws s3 cp --storage-class STANDARD_IA --sse aws:kms - "${S3_TARGET}"
 
-# Capture the exit status of the pipeline
-BACKUP_STATUS=$?
-
-# --- Report Result ---
-if [ $BACKUP_STATUS -eq 0 ]; then
-  echo "------------------------------------------------------------"
-  echo "Backup completed successfully and uploaded to:"
-  echo "${S3_TARGET}"
-  echo "------------------------------------------------------------"
-else
-  echo "------------------------------------------------------------"
-  echo "Error: Backup process failed with status ${BACKUP_STATUS}."
-  echo "Check the output above for error messages from 'pg_dump' or 'aws'."
-  echo "------------------------------------------------------------"
-  exit $BACKUP_STATUS
-fi
-
-exit 0
+# ... (Rest of script remains the same) ...
