@@ -65,23 +65,17 @@ services:
       - ${MATTERMOST_CLIENT_PLUGINS_PATH}:/mattermost/client/plugins:rw
       - ${MATTERMOST_BLEVE_INDEXES_PATH}:/mattermost/bleve-indexes:rw
     environment:
-      - DOMAIN
-      - TZ
-      - RESTART_POLICY
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
-      - HTTPS_PORT
-      - HTTP_PORT
-      - MM_BLEVESETTINGS_INDEXDIR
-      - MATTERMOST_CONTAINER_READONLY
+      # --- Core Settings ---
       - MM_SQLSETTINGS_DRIVERNAME
       - MM_SQLSETTINGS_DATASOURCE
-      - MM_SQLSETTINGS_DATASOURCE
       - MM_SERVICESETTINGS_SITEURL
-      - MM_SERVICESETTINGS_COLLAPSEDTHREADS
       - MM_TEAMSETTINGS_SITENAME
+
+      # --- Feature & Display Toggles ---
+      - MM_SERVICESETTINGS_COLLAPSEDTHREADS
       - MM_TEAMSETTINGS_ENABLECUSTOMBRAND
+
+      # --- File Storage Settings (S3) ---
       - MM_FILESETTINGS_DRIVERNAME
       - MM_FILESETTINGS_MAXFILESIZE
       - MM_FILESETTINGS_AMAZONS3BUCKET
@@ -89,6 +83,8 @@ services:
       - MM_FILESETTINGS_AMAZONS3ACCESSKEYID
       - MM_FILESETTINGS_AMAZONS3SECRETACCESSKEY
       - MM_FILESETTINGS_AMAZONS3SSE
+
+      # --- Email & Notification Settings ---
       - MM_SUPPORTSETTINGS_SUPPORTEMAIL
       - MM_EMAILSETTINGS_REPLYTOADDRESS
       - MM_EMAILSETTINGS_FEEDBACKNAME
@@ -101,7 +97,9 @@ services:
       - MM_EMAILSETTINGS_CONNECTIONSECURITY
       - MM_EMAILSETTINGS_SENDPUSHNOTIFICATIONS
       - MM_EMAILSETTINGS_PUSHNOTIFICATIONSERVER
-      - MM_URL
+      
+      # Note: The variable TZ for timezone is often useful here too.
+      - TZ        
     ports:
       - ${CALLS_PORT}:${CALLS_PORT}/udp
       - ${CALLS_PORT}:${CALLS_PORT}/tcp
