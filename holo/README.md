@@ -1,139 +1,143 @@
 # Mattermost Docker for Holo
-The official Docker deployment solution for Mattermost adapted for Holo/chain.
 
-This has meant the following changes/additions:
-- Secrets in `.env` are being protected with [Agebox](https://github.com/slok/agebox), an Age based repository file encryption gitops tool.
-- [Gitleaks](https://github.com/gitleaks/gitleaks) has been implemented as a pre-commit hook to prevent the accidental commitment of hardcoded secrets to the repo.
-- Documentation of Hetzner Cloud host creation using `hcloud`.
-- Restart policy is set to `always` and specified Postgres image is `14-alpine` for compatibility with existing MM database.
-- Target [server release](https://docs.mattermost.com/about/mattermost-server-releases.html) is [Mattermost Team Edition](https://hub.docker.com/r/mattermost/mattermost-team-edition) Extended Support Release(ESR) 9.5.13.  The intention is to migrate to the 10.5 ESR series in the next quarterly upgrade cycle.
-- No auto-update for images. Have completely removed `watchtower` from `docker-compose.yml`.
-- Run only rootless containers (check [dockerfile] for `USER` statement)
-- Use proxies with simple ingress rules to prevent abuse and spam (rate limit, geo block).  Using nginx as the reverse proxy for Mattermost.
-- No `--privileged`
-- No `--network host` and no `--id 0`
-- Dropping NET_RAW and SYS_CHROOT capabilities from services in Compose files.  
-- FAILING: Use [AppArmor profiles](https://docs.docker.com/engine/security/apparmor/). Sample `app-armor.docker-harden` denies `network raw` and `capability sys_chroot`.
-- Sample seccomp-harden.json file that removes `CAP_SYS_CHROOT`.
-- Added sample `daemon.json` with hardened Docker daemon configuration.
-- N/A: Use `--internal`
-- N/A: No WAN access to any container unless needed, if needed put in separate MACLVAN or IPVLAN on different VLAN
-- Document actions taken as a result of mitigating issues surfaced by docker-bench-security and am-i-isolated.
-- Implemented Crowdsec on host. See [Example Docker Compose for Crowdsec repo](https://github.com/crowdsecurity/example-docker-compose) using [crowdsecurity/crowdsec](https://hub.docker.com/r/crowdsecurity/crowdsec) images and docker-socket-proxy for nginx usage.
-- Added `docker-compose.crowdsec-gvisor-nginx.yml`.
-- Adding [Diun](https://crazymax.dev/diun/).
-- Implemented hardening-specific audit rules for `auditd`.  Added sample `hardening.rules`.
-- Hardening system via `sysctl`.  See `holo/99-hardening.conf`.
-- Investigated Content Trust for Docker
-- Taken initial steps towards future integration of [Solidblocks RDS PostgreSQL](https://pellepelster.github.io/solidblocks/rds/index.html).  A containerized PostgreSQL database with an all batteries included backup solution powered by [pgBackRest](https://pgbackrest.org/).
-- Replaced `runsc` with `sysbox-runc` for container sandboxing
-- Network segmentation for additional security.
+This repository contains a hardened, production-ready Docker deployment solution for Mattermost Team Edition, adapted for Holo/chain's self-hosting on Hetzner Cloud. It is a fork of the official Mattermost Docker setup, with significant additions for security, operational management, and a clear deployment/upgrade path.
 
-## Security Audits
-### Manual
-- Ensured Mattermost and Postgres containers do NOT run as root, by reviewing their respective `Dockerfile` definitions.
-- The [default Nginx Docker image](https://hub.docker.com/_/nginx) does RUN as root, but drops privileges for the worker processes.  There is an [official unprivileged Nginx image](https://hub.docker.com/r/nginxinc/nginx-unprivileged) available but that could introduce maintenance overhead.  For now, I will consider the dropping of privileges sufficient.
-### Automated
-- [Lynis](https://github.com/CISOfy/lynis) hardening index: 82
-- [Docker Bench for Security](https://github.com/docker/docker-bench-security) score: 36
-- [Am I Isolated](https://github.com/edera-dev/am-i-isolated)
-- [Docker Compose Linter (DCLint)](https://github.com/zavoloklom/docker-compose-linter): All actual validation errors reported in `docker-compose.yml` and `docker-compose.crowdsec-gvisor-nginx.yml` have been fixed. 
-## Operation
-### Names of Services in the Mattermost Stack
-- mattermost
-- mmharden-crowdsec-1
-- mmharden-diun-1
-- nginx_mattermost
-- postgres
-- socket-proxy
-### Starting the Mattermost Stack
-`docker compose -f docker-compose.harden.yml up -d`
-### Stopping the Mattermost Stack
-`docker compose -f docker-compose.harden.yml down`
-### Stopping Specific Services
-`docker compose -f docker-compose.harden.yml stop <servicename>`
-### Starting Specific Stopped Services
-`docker compose -f docker-compose.harden.yml start <servicename>`
-### Restarting Specific Services
-`docker compose -f docker-compose.harden.yml restart <servicename>`
+## Key Features & Hardening Measures
 
-### Executing Commands in Running Containers
-`docker compose -f docker-compose.harden.yml exec <servicename> <command> <options>`
-`docker compose -f docker-compose.harden.yml exec postgres psql --version`
+*   **Secrets Management:** Secrets in `.env` files are protected with [Agebox](https://github.com/slok/agebox), an `age`-based repository file encryption tool.
+*   **Leak Prevention:** [Gitleaks](https://github.com/gitleaks/gitleaks) is implemented as a pre-commit hook to prevent accidental commitment of secrets.
+*   **Container Sandboxing:** Uses [Sysbox](https://github.com/nestybox/sysbox) (`sysbox-runc`) as the container runtime for enhanced isolation and security.
+*   **Intrusion Prevention:** Implements [CrowdSec](https://crowdsec.net/) to monitor Nginx logs and ban malicious IPs at the firewall level.
+*   **Network Segmentation:** Utilizes separate Docker networks (`frontend`, `backend`, `monitoring`) to isolate services.
+*   **Image Update Management:** Automatic updates are disabled (no `watchtower`). Image versions are explicitly defined in the `.env` file for controlled upgrades.
+*   **System Hardening:**
+    *   Host-level hardening via `sysctl` (`holo/99-hardening.conf`).
+    *   Hardening-specific audit rules for `auditd` (`holo/hardening.rules`).
+    *   Host firewall configured with `iptables` to be Docker-compatible, using the `DOCKER-USER` chain.
+*   **Least Privilege:**
+    *   Containers do not run as root where official images are available.
+    *   Unnecessary kernel capabilities (`NET_RAW`, `SYS_CHROOT`) are dropped from services.
+    *   Does not use `--privileged` or `--network host`.
+*   **Operational Tooling:** Includes `Diun` for Docker image update notifications and custom backup/restore scripts.
 
-## Installation
-### Hetzner Cloud Host Creation
-If you don't already have an existing host or need to create a new one for scaling or disaster recovery, take the following steps.  Otherwise you can skip to the next section.
+---
 
-1. Retrieve or generate a suitable Hetzner Cloud API token using the [Hetzner Cloud Console](https://console.hetzner.cloud/) if necessary.
-2. Use the [`hcloud` cli](https://github.com/hetznercloud/cli) to set up a [Hetzner Cloud](https://www.hetzner.com/cloud/) server with pre-installed Docker & Compose on Ubuntu: e.g. `hcloud server create --name mm-docker --location hel1 --type ccx23 --image docker-ce`
-3. The result will include an IP address and a root password, so that you can `ssh` into the server.  You should do so immediately and setup SSH Key Authentication and prohibit the use of a password for Root SSH login.
+## Deployment & Operation
 
-### Mattermost Backup and Restore: AWS Migration Edition
-1. Obtain a `pg_dump` compatible backup of your Mattermost database.  You will need to have [AWS CLI](https://docs.aws.amazon.com/cli/) installed and configured on a host that has access to RDS.  The following script (adapted from [rds-s3-database-backup](https://github.com/bamf-health/rds-s3-database-backup)) will work with an existing AWS RDS hosted Mattermost database and the resulting dump is stored in AWS S3:  
-```
-#!/bin/sh
-# Set default connection parameters for pg_dump
-PGHOST=${PROD}
-PGUSER=${PGUSER:-mmuser}
-PGDATABASE=${PGDATABASE:-mattermost}
-S3_BUCKET=${S3_BUCKET:-db.dr1.chat.holo.host}
+This section covers the installation of a new Mattermost instance from scratch and the process for performing version upgrades.
 
-DATE=$(date "+%Y-%m-%d-%H%M")
-TARGET=s3://${S3_BUCKET}/${PGDATABASE}-${DATE}.sql.gz
+### 1. Initial Host Setup
 
-echo Backing up ${PGHOST}/${PGDATABASE} to ${TARGET}
+These steps are for creating a new server. If you have an existing host with Docker, Docker Compose, and your preferred firewall (`iptables`), you can skip to the next section.
 
-# export PGPASSWORD=${DATABASE_PASSWORD}
-pg_dump --clean -Z 9 -v -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} | aws s3 cp --storage-class STANDARD_IA --sse aws:kms - ${TARGET}
-```
-2. Take a copy of `config/config.json`.  In our case, we also had to extract all the customizations in that file and replicate them in `docker-compose.yml` and `.env`.
-3. No need to backup stored files, since we are using S3 for that.
-4. Install and configure AWS CLI on your destination server so that it can access the database dump in S3.  Test the S3 connection. 
-4. The database can be restored thusly on the destination server, `aws s3 cp s3://db.dr1.chat.holo.host - | gunzip | psql`
+1.  **Create Hetzner Cloud Server:**
+    - `[ ]` Use the `hcloud` CLI to create a server. Ubuntu with the `docker-ce` image is recommended.
+        ```bash
+        hcloud server create --name mm-docker --location hel1 --type ccx23 --image docker-ce
+        ```
+2.  **Initial Server Login & Security:**
+    - `[ ]` Immediately `ssh` to the server using the provided root password.
+    - `[ ]` Set up SSH key authentication for your user.
+    - `[ ]` **Disable root SSH login and password-based SSH authentication** in `/etc/ssh/sshd_config`.
+3.  **Install Prerequisites:**
+    - `[ ]` Install `agebox`, `git`, `tmux` (or `screen`), `aws-cli`, `pv`, and `iptables-persistent`.
+        ```bash
+        sudo apt update
+        sudo apt install -y agebox git tmux pv iptables-persistent awscli
+        ```
+    - `[ ]` Install Sysbox container runtime by following the [official Sysbox installation guide](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install.md). After installation, restart the Docker daemon: `sudo systemctl restart docker`.
+4.  **Configure Host Firewall (`iptables`):**
+    - `[ ]` **Gotcha:** `ufw` conflicts with Docker's `iptables` rules. Use `iptables` directly.
+    - `[ ]` Use the `setup_firewall.sh` script from this repository to configure your firewall rules. **You must edit the script first** to set your `<EXTERNAL_INTERFACE>` and SSH source IP. Always have out-of-band console access ready when applying firewall rules.
+    - `[ ]` The script should use the `DOCKER-USER` chain to allow inbound traffic for `HTTP` (80), `HTTPS` (443), and the Mattermost Calls port (`8443`), and should persist the rules using `iptables-persistent`.
+5.  **Enable IP Forwarding:**
+    - `[ ]` Docker networking requires IP forwarding. Ensure it's enabled persistently.
+        ```bash
+        # Create a conf file to ensure the setting persists after reboot
+        echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-docker-forward.conf
+        # Apply immediately
+        sudo sysctl -p /etc/sysctl.d/99-docker-forward.conf
+        ```
+6.  **Clone Repository:**
+    - `[ ]` `git clone <your-repo-url> ~/mattermost-docker`
 
-### Mattermost deployment to Hetzner Cloud Host
-Refer to the [Mattermost Docker deployment guide](https://docs.mattermost.com/install/install-docker.html) for detailed instructions on how to deploy Mattermost to the newly created server. The following are the abbreviated steps:
-- TBD
+### 2. Secrets Management (`agebox`)
 
-## Secrets Management with Agebox
-### Installation
-### Configuration
-You can generate a new `age` keypair as follows:
+This project uses `agebox` with `age` keys. The intended workflow uses a `./keys` directory in the repository for recipient public keys.
 
+- **Local Setup (Your Machine):**
+    - `[ ]` Your personal `age` private key should be in `~/.config/sops/age/keys.txt` to align with `sops` conventions.
+- **Server Setup:**
+    - `[ ]` Each server (production, test) should have **only its own unique private key** in `/root/.config/age/keys.txt` (or a user's home directory if not running as root).
+- **Usage:**
+    - `[ ]` **Encrypting:** Create a `./keys` directory in the repo root. Add recipient public key files (`.pub`). Run `agebox encrypt <file>` to encrypt for all recipients.
+    - `[ ]` **Decrypting (Deployment):** Use `agebox cat <file.agebox> > <file>`. This is non-destructive to the source `.agebox` file. On your local machine, you may need to specify your key with `-i`: `agebox cat -i ~/.config/sops/age/keys.txt <file.agebox> > <file>`.
 
-The default path that `agebox` will search for private keys is `~/.ssh`. If you want `agebox` to look elsewhere, you will need to set the `AGEBOX_PRIVATE_KEYS` environment variable to the appropriate path as illustrated with this example:
+### 3. Deploying a New Mattermost Instance
 
-`export AGEBOX_PRIVATE_KEYS=~/.config/sops/age`
+1.  **Prepare `.env` file:**
+    - `[ ]` In the `mattermost-docker` directory, decrypt the `.env.agebox` template: `agebox cat .env.agebox > .env`.
+    - `[ ]` Edit `.env` and fill in all required values (domain, passwords, S3 details, etc.). Set the desired `MATTERMOST_IMAGE_TAG` (e.g., `10.5.8`).
+    - `[ ]` **Gotcha:** Your `docker-compose.harden.yml` requires runtime environment variables (like `MM_SQLSETTINGS_DATASOURCE` and `MM_SERVICESETTINGS_COLLAPSEDTHREADS`) to be explicitly passed. Ensure they are listed in the `environment:` section for the `mattermost` service.
+2.  **Take a Database Backup (if migrating from existing system):**
+    - `[ ]` Use the `backup_prod_db.sh` script to get a `.sql.gz` dump of your existing database and upload it to S3.
+3.  **Start PostgreSQL & Restore Database:**
+    - `[ ]` `docker compose -f docker-compose.harden.yml up -d postgres`
+    - `[ ]` Use `tmux` or `screen` for the restore.
+    - `[ ]` Run the `restore_mattermost_db.sh` script, providing the backup filename. It will download from S3 and pipe into the Postgres container.
+4.  **Start the Full Stack:**
+    - `[ ]` `docker compose -f docker-compose.harden.yml up -d`
+    - `[ ]` Monitor logs (`docker compose -f ... logs -f mattermost`) for successful startup.
+5.  **Generate TLS Certificate:**
+    - `[ ]` Ensure your domain's DNS record points to the new server's IP and has propagated.
+    - `[ ]` **Gotcha:** If a DNS-level redirect from HTTP->HTTPS is active, Certbot's `standalone` challenge will fail. Disable it at your DNS provider.
+    - `[ ]` Stop Nginx to free port 80: `docker compose -f ... stop nginx`.
+    - `[ ]` Run the `scripts/issue-certificate.sh` script.
+    - `[ ]` Update `CERT_PATH` and `KEY_PATH` in `.env` to point to the newly generated certificate files. **Gotcha:** Certbot may create a `-0001` suffixed directory; use the most recent one.
+    - `[ ]` Restart Nginx: `docker compose -f ... up -d --force-recreate nginx`.
+6.  **Final Verification:**
+    - `[ ]` Access your Mattermost URL via HTTPS.
+    - `[ ]` Log in and perform smoke tests.
 
-### Usage
-- Encryption: `agebox encrypt <envfile>`
-- Decryption: `agebox decrypt <envfile>`
+### 4. Upgrading an Existing Mattermost Instance
 
+The process is much simpler for an in-place upgrade.
 
-## Key Resources
-- [Migrate Mattermost from one server to another](https://docs.mattermost.com/onboard/migrating-to-mattermost.html#migrate-mattermost-from-one-server-to-another): Migrate Mattermost from one server to another by backing up and restoring the Mattermost database and `config.json` file.
-- [Mattermost backup and disaster recovery](https://docs.mattermost.com/deploy/backup-disaster-recovery.html)
-- [PostgreSQL SQL Dump](https://www.postgresql.org/docs/14/backup-dump.html)
-- [Mattermost Docker](https://github.com/mattermost/docker) is the official Docker deployment solution for Mattermost. It references [Deploy Mattermost via Docker](https://docs.mattermost.com/install/install-docker.html) using a Docker Compose deployment method that "is not recommended for production environments" out of the box.
-- [Use Compose in Production](https://docs.docker.com/compose/how-tos/production/) provides advice on creating a production-ready app configuration using Docker Compose.
-- [Docker CE](https://docs.hetzner.com/cloud/apps/list/docker-ce/): Hetzner Cloud App that contains a ready to use Docker with Compose installation.
-- [Hetzner Cloud docs](https://docs.hetzner.com/cloud/): Information on Hetzer Cloud products; how to use the Cloud Console; functionality; billing; future plans and how to use the API
-- [Run multiple Docker Compose services on Debian/Ubuntu](https://community.hetzner.com/tutorials/docker-compose-as-systemd-service): This tutorial will show you how you can run multiple Docker Compose services via a systemd service template.
-- [How to use secrets in Docker Compose](https://docs.docker.com/compose/how-tos/use-secrets/)
-- [RDS PostgreSQL](https://pellepelster.github.io/solidblocks/rds/index.html): A containerized PostgreSQL database with an all batteries included backup solution powered by [pgBackRest](https://pgbackrest.org/).
-- [Hetzner Cloud | Snapshot-as-Backup](https://github.com/fbrettnich/hcloud-snapshot-as-backup): This script automatically creates snapshots of your Hetzner Cloud Servers and deletes the old ones.
-- [Dumping postgres databases with Docker](https://diegoquintanav.github.io/dumping-postgres-db-with-docker.html)
-- [Postgres Docker Quick Reference](https://github.com/docker-library/docs/blob/master/postgres/README.md)
-- [From Docker CLI to Docker Compose](https://www.thedigitalcatonline.com/blog/2022/02/19/from-docker-cli-to-docker-compose/)
-- [pirate/docker-compose-backup.sh](https://gist.github.com/pirate/265e19a8a768a48cf12834ec87fb0eed)
-- [Docker: Backup and restore](https://www.ionos.co.uk/digitalguide/server/security/docker-backup/)
-- [Docker-compose exec using stdin as an input](https://dev.to/codewithcats/docker-compose-exec-using-stdin-as-an-input-46lh)
-- [How to dump and restore a PostgreSQL from a Docker Container](https://masb0ymas.com/blog/how-to-dump-and-restore-a-postgres-database-from-a-docker-container)
+1.  **Announce Maintenance:**
+    - `[ ]` Inform users of a brief (~30 min) maintenance window.
+2.  **Take Production Backup:**
+    - `[ ]` Run the `backup_prod_db.sh` script inside a `tmux` session to create a pre-upgrade recovery point.
+3.  **Update `.env` file:**
+    - `[ ]` Edit the production `.env` file. Change `MATTERMOST_IMAGE_TAG` to the new target ESR version (e.g., `10.5.8`).
+4.  **Perform the Upgrade:**
+    - `[ ]` `docker compose -f docker-compose.harden.yml stop mattermost`
+    - `[ ]` `docker compose -f docker-compose.harden.yml pull mattermost`
+    - `[ ]` `docker compose -f docker-compose.harden.yml up -d mattermost`
+5.  **Monitor Logs:**
+    - `[ ]` **Crucial:** Watch the logs (`docker compose -f ... logs -f mattermost`) to see the database schema migrations being applied. Wait for the "Server is listening" message.
+6.  **Verification & Deactivation (if needed):**
+    - `[ ]` **Gotcha:** Upgrading to v10+ may trigger a safety limit warning if you have >2,500 users. If so, `exec` into the `postgres` container and run the `UPDATE` query (tested previously) to deactivate inactive users based on `lastlogin`.
+    - `[ ]` Restart Mattermost after deactivation: `docker compose -f ... restart mattermost`.
+    - `[ ]` Log in, check the version in "About Mattermost," and verify functionality.
+7.  **Announce Completion:**
+    - `[ ]` Inform users that maintenance is complete.
 
+---
 
+## FAQ & Lessons Learned
 
-NB: Many of the official supported Mattermost deployment options install Enterprise Edition by default and often omit information on installing Team Edition instead.  For example, [Install Mattermost Omnibus](https://docs.mattermost.com/install/installing-mattermost-omnibus.html) does this.
-
-A tarball of Mattermost Team Edition for Linux can always be obtained like so:
-MM_VERSION=10.5.1 wget https://releases.mattermost.com/$MM_VERSION/mattermost-team-$MM_VERSION-linux-amd64.tar.gz
+- **Why `iptables` instead of `ufw`?**
+    - `ufw` often conflicts with the `iptables` rules that Docker dynamically creates for networking and port mapping. Managing rules directly with `iptables` and adding custom rules to the `DOCKER-USER` chain is the most reliable way to create a secure host firewall that coexists with Docker.
+- **Why did my `docker compose` command fail with `service "postgres" is not running`?**
+    - `docker compose` is context-aware. If you run it from a subdirectory, it may not find the project's running containers. **Solution:** Always run `docker compose` commands with the `-f docker-compose.harden.yml` flag to explicitly define the project context.
+- **Why did Nginx fail to start with a certificate error?**
+    - **Reason 1 (Most Common):** The certificate file doesn't exist yet. You must generate it with Certbot *after* your DNS points to the server.
+    - **Reason 2 (File vs. Directory):** If a volume mount's *source* path doesn't exist, Docker creates it as a directory. Your `.env`'s `CERT_PATH` might have pointed to a non-existent file, causing Docker to create a `fullchain.pem` **directory**, which Nginx cannot read as a certificate. **Solution:** Delete the incorrect directory (`sudo rm -rf ...`) and generate the cert correctly.
+    - **Reason 3 (Path Mismatch):** Certbot created the certificate in one location (e.g., in a `-0001` suffixed directory), but your `.env` `CERT_PATH` pointed to another. **Solution:** Always update `.env` to the exact, absolute path of the *most recently generated* certificate.
+- **Why did `certbot` fail with `NXDOMAIN`?**
+    - The DNS record for your domain (`A` or the target of your `CNAME`) had not propagated globally, or was configured incorrectly. **Solution:** Use an external tool like `dnschecker.org` and wait until the correct IP is visible worldwide before running Certbot.
+- **Why did `certbot` fail with a `404` or `Timeout` on port 80?**
+    - **Timeout:** A firewall (host-level `iptables` or network-level like Hetzner's) was blocking port 80.
+    - **404:** A DNS-level redirect was forcing `http://` traffic to `https://`. Certbot's `standalone` authenticator only works on HTTP. **Solution:** Disable DNS-level forwarding/redirects.
+- **Why did my variables from `.env.test` not appear in the container?**
+    - For this specific Docker Compose setup, we found that runtime variables for the Mattermost application (`MM_...` variables) needed to be explicitly passed through. **Solution:** Add the variable name (e.g., `MM_SQLSETTINGS_DATASOURCE`) to the `environment:` list for the `mattermost` service in `docker-compose.harden.yml`.
