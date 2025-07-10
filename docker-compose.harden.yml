@@ -145,7 +145,7 @@ services:
       - /var/log/nginx
 
   postgres:
-    image: ankane/pgvector:pg14
+    image: pgvector/pgvector:0.8.0-pg14
     container_name: postgres
     volumes:
       - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
