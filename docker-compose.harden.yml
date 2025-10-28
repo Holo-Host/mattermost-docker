@@ -84,6 +84,9 @@ services:
       - MM_FILESETTINGS_AMAZONS3SECRETACCESSKEY
       - MM_FILESETTINGS_AMAZONS3SSE
 
+      # --- Plugin Settings ---
+      - MM_PLUGINSETTINGS_ENABLEUPLOADS
+
       # --- Email & Notification Settings ---
       - MM_SUPPORTSETTINGS_SUPPORTEMAIL
       - MM_EMAILSETTINGS_REPLYTOADDRESS
