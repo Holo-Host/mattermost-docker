@@ -3,6 +3,9 @@
 -- This script performs VACUUM FULL on critical tables to reclaim space and rebuild indexes,
 -- followed by a full schema reindex and database-wide analyze.
 
+\timing on
+SELECT now() AS maintenance_start_time;
+
 \echo 'Starting Mattermost database maintenance...'
 
 -- Targeted VACUUM FULL on tables with high churn or large volume
@@ -50,3 +53,5 @@ REINDEX SCHEMA public;
 ANALYZE;
 
 \echo 'Maintenance complete.'
+
+SELECT now() AS maintenance_end_time;
