@@ -48,6 +48,9 @@ Follow these steps to deploy Mattermost on a new server.
 3.  **Install Prerequisites:**
     - `[ ]` `sudo apt update && sudo apt install -y agebox git tmux pv iptables-persistent awscli`
     - `[ ]` Install Sysbox container runtime following the [official Sysbox installation guide](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install.md). Restart Docker after: `sudo systemctl restart docker`.
+4.  **Configure Unattended Upgrades (scheduled reboot window):**
+    - `[ ]` `sudo cp holo/50unattended-upgrades /etc/apt/apt.conf.d/50unattended-upgrades`
+    - `[ ]` Verify: `sudo unattended-upgrade --dry-run --debug 2>&1 | grep -i reboot`
 4.  **Configure Host Firewall (`iptables`):**
     - `[ ]` Edit the `setup_firewall.sh` script to set your `<EXTERNAL_INTERFACE>` and SSH source IP.
     - `[ ]` Apply the rules: `sudo bash ./setup_firewall.sh`. **Have out-of-band console access ready.**

@@ -1,0 +1,31 @@
+// Automatically upgrade packages from these (origin:archive) pairs
+Unattended-Upgrade::Allowed-Origins {
+	"${distro_id}:${distro_codename}";
+	"${distro_id}:${distro_codename}-security";
+	"${distro_id}ESMApps:${distro_codename}-apps-security";
+	"${distro_id}ESM:${distro_codename}-infra-security";
+//	"${distro_id}:${distro_codename}-updates";
+//	"${distro_id}:${distro_codename}-proposed";
+//	"${distro_id}:${distro_codename}-backports";
+};
+
+Unattended-Upgrade::Package-Blacklist {
+};
+
+Unattended-Upgrade::DevRelease "auto";
+
+// Reboot automatically after kernel/security updates require it.
+// Scheduled for 05:00 UTC — after nightly backup (~03:05) and certbot renewal (04:00).
+Unattended-Upgrade::Automatic-Reboot "true";
+
+// Do not reboot if users are currently logged in.
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+
+// Reboot at a predictable time rather than immediately.
+Unattended-Upgrade::Automatic-Reboot-Time "05:00";
+
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+Unattended-Upgrade::SyslogEnable "true";
