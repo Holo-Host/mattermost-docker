@@ -1,0 +1,30 @@
+# Overlay for deployments where twenty-docker's nginx handles TLS
+# termination on ports 80/443 (e.g. mattermost-0 alongside twenty-docker,
+# omnigent-docker, glpi-docker).
+#
+# Usage:
+#   docker compose -f docker-compose.harden.yml -f docker-compose.twenty.yml \
+#     --env-file .env.test up -d
+#
+# What this does:
+#   - Disables the bundled nginx (ports 80/443 belong to twenty-docker's nginx)
+#   - Adds the mattermost service to the `mattermost-web` external-facing
+#     network so twenty-docker's nginx can reach it as `mattermost:8065`
+#
+# twenty-docker's nginx config (nginx/conf.d/chat-ng.conf) proxies
+# chat-ng.holochain.org → mattermost:8065 over this network.
+
+name: mmharden
+
+services:
+  nginx:
+    profiles:
+      - disabled
+
+  mattermost:
+    networks:
+      mattermost-web: {}
+
+networks:
+  mattermost-web:
+    name: mattermost-web
