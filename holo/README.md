@@ -126,7 +126,17 @@ This process follows a safe, two-phase approach: **test first, then upgrade prod
     - `[ ]` Ensure `chat-ng.holochain.org` DNS points to the test server's IP and has propagated.
     - `[ ]` Generate a TLS certificate for `chat-ng.holochain.org` using the same method as the initial install.
     - `[ ]` Update `.env.test` with the correct `CERT_PATH`/`KEY_PATH` and restart Nginx.
-5.  **Verify Test Upgrade:**
+5.  **Post-migration database maintenance:**
+    - `[ ]` Once "Server is listening" appears, run a targeted VACUUM ANALYZE to reclaim dead tuples from the migration and refresh planner statistics. This is non-blocking and can run while the server is live:
+        ```bash
+        docker compose --env-file .env.test -f docker-compose.harden.yml exec postgres psql -U mmuser -d mattermost -c "
+        VACUUM ANALYZE posts;
+        VACUUM ANALYZE threadmemberships;
+        VACUUM ANALYZE threads;
+        VACUUM ANALYZE channelmembers;
+        "
+        ```
+6.  **Verify Test Upgrade:**
     - `[ ]` Access `https://chat-ng.holochain.org`.
     - `[ ]` Log in and confirm the version in "About Mattermost" matches your target.
     - `[ ]` **Test for Safety Limit Warning:** If the `ERROR_SAFETY_LIMITS_EXCEEDED` banner appears, proceed with the deactivation steps below.
