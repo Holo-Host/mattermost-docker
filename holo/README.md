@@ -69,6 +69,11 @@ Follow these steps to deploy Mattermost on a new server.
 2.  **Database Restore (if migrating):**
     - `[ ]` If migrating from an old system, obtain a `.sql.gz` backup and place it on this server or in S3.
     - `[ ]` Start the database service: `docker compose -f docker-compose.harden.yml up -d postgres`.
+    - `[ ]` Drop and recreate the database to ensure a clean restore (the `--clean` flag in pg_dump is unreliable against a populated database — PK conflicts silently roll back large table COPYs):
+        ```bash
+        docker exec postgres psql -U mmuser -d postgres -c 'DROP DATABASE IF EXISTS mattermost;'
+        docker exec postgres psql -U mmuser -d postgres -c 'CREATE DATABASE mattermost OWNER mmuser;'
+        ```
     - `[ ]` Run the `restore_mattermost_db.sh` script inside a `tmux` session, providing the path to your `.env` file and the backup filename.
 3.  **Start the Full Stack:**
     - `[ ]` `docker compose -f docker-compose.harden.yml up -d`
@@ -100,15 +105,21 @@ This process follows a safe, two-phase approach: **test first, then upgrade prod
 2.  **Restore Production Data to Test Server:**
     - `[ ]` Start the test Postgres container: `docker compose --env-file .env.test -f docker-compose.harden.yml up -d postgres`.
     - `[ ]` Start a `tmux` session: `tmux new -s mm-test-restore`.
+    - `[ ]` Drop and recreate the test database before restoring:
+        ```bash
+        docker exec postgres psql -U mmuser -d postgres -c 'DROP DATABASE IF EXISTS mattermost;'
+        docker exec postgres psql -U mmuser -d postgres -c 'CREATE DATABASE mattermost OWNER mmuser;'
+        ```
     - `[ ]` Inside `tmux`, run the restore script, pointing it to your test environment file and the production backup filename you just created:
         ```bash
-        ./scripts/restore_mattermost_db.sh ../.env.test <production_backup_filename.sql.gz>
+        bash holo/restore_mattermost_db.sh .env.test <production_backup_filename.sql.gz>
         ```
-    - `[ ]` Detach (`Ctrl+b`, `d`) and wait for completion.
+    - `[ ]` Detach (`Ctrl+b`, `d`) and wait for completion (~20 minutes for a ~1.2 GB backup).
+    - `[ ]` After restore completes, fix the `systems` table before starting Mattermost (see **`systems` table duplicate row** in FAQ & Gotchas below).
 3.  **Run the Test Upgrade:**
     - `[ ]` Start the full test stack. This will trigger the database migrations.
         ```bash
-        docker compose --env-file .env.test -f docker-compose.harden.yml up -d
+        docker compose --env-file .env.test -f docker-compose.harden.yml -f docker-compose.twenty.yml up -d
         ```
     - `[ ]` **Crucial:** Monitor the logs closely (`docker compose --env-file .env.test -f ... logs -f mattermost`) until you see the "Server is listening" message. Note any errors.
 4.  **Configure DNS & TLS for Test Domain:**
@@ -176,3 +187,18 @@ Once the test upgrade is successful and verified, proceed with the production up
     - **Timeout/404:** A firewall was blocking port 80, OR a redirect rule at your DNS provider was forcing HTTP to HTTPS. Disable DNS-level forwarding.
 - **Why are my `.env` variables not showing up in the container?**
     - For this Compose setup, we found that runtime `MM_...` variables must be explicitly listed in the `environment:` section of the `mattermost` service in `docker-compose.harden.yml` to be passed through reliably.
+- **`systems` table duplicate row — Permissions Migrations crash-loop**
+    - Mattermost 10.6+ uses `ON CONFLICT (name)` upserts against the `systems` table, which requires a primary key. If the PK is missing (or was never applied because a duplicate row blocked it during restore), the server will crash-loop with: `Failed to run app migration: Permissions Migrations: pq: there is no unique or exclusion constraint matching the ON CONFLICT specification`.
+    - Fix: run these SQL commands against the `mattermost` database **after restore and before starting Mattermost**:
+        ```sql
+        -- Remove duplicate rows (keeps the first by ctid)
+        DELETE FROM systems WHERE ctid IN (
+          SELECT ctid FROM (
+            SELECT ctid, ROW_NUMBER() OVER (PARTITION BY name ORDER BY ctid) AS rn
+            FROM systems
+          ) t WHERE rn > 1
+        );
+        -- Add the primary key (skip if it already exists)
+        ALTER TABLE systems ADD PRIMARY KEY (name);
+        ```
+    - **Note:** Backups taken before this fix was applied to production (i.e., before 5 Oct 2026) will carry the duplicate row and will require this fix on every restore.
